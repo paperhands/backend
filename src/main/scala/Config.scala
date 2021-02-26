@@ -13,7 +13,8 @@ case class Config(
     market: Market
 )
 case class Reddit(
-    secret: String
+    secret: String,
+    thread_pool: Int
 )
 case class Repository(
     user: String,

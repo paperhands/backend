@@ -5,6 +5,7 @@ import app.paperhands.config.Config
 import app.paperhands.market.Market
 import app.paperhands.ocr.OCR
 import com.typesafe.scalalogging.Logger
+import java.util.concurrent.Executors
 
 case class RedditEntry(
     kind: String,
@@ -18,18 +19,23 @@ case class RedditEntry(
 )
 
 object RedditScraper extends Reddit {
+  val cfg = Config.load
+  val market = Market.load
+
+  val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
+  val urlPattern =
+    "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
+  val pool = Executors.newFixedThreadPool(cfg.reddit.thread_pool)
+
   def processURL(url: String): String = {
     val out = OCR.processURL(url)
     s"\n$url:\n$out"
   }
 
-  val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   def isImageURL(url: String): Boolean = {
     imgPattern.matches(url)
   }
 
-  val urlPattern =
-    "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
   def extractImageURLs(body: String): List[String] = {
 
     urlPattern
@@ -77,29 +83,28 @@ object RedditScraper extends Reddit {
         s"starting new thread to process ${entry.imageURLs.length} urls"
       )
 
-      new Thread {
+      val thread = new Thread {
         override def run = {
           val urlsOut = entry.imageURLs.map(processURL).mkString("")
-
           logger.info(s"Result of media processing: $urlsOut")
-
           handle(entry.copy(body = s"${entry.body}$urlsOut"))
         }
-      }.start
+      }
+
+      pool.submit(thread)
     } else {
       handle(entry)
     }
   }
 
   def handle(entry: RedditEntry) = {
-    // logger.info(s"${entry.author}: ${entry.body}")
+    logger.info(s"${entry.author}: ${entry.body}")
   }
 }
 
 object Scraper {
   def run = {
     val cfg = Config.load
-    val market = Market.load
     RedditScraper.loop(cfg.reddit.secret)
   }
 }
