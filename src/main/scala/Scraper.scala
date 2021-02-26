@@ -7,6 +7,16 @@ import app.paperhands.ocr.OCR
 import com.typesafe.scalalogging.Logger
 import java.util.concurrent.Executors
 
+trait Sentiment
+case class Unknown() extends Sentiment
+case class Bull() extends Sentiment
+case class Bear() extends Sentiment
+
+case class SentimentData(
+    sentiment: Sentiment,
+    symbols: List[String]
+)
+
 case class RedditEntry(
     kind: String,
     id: String,
@@ -14,6 +24,7 @@ case class RedditEntry(
     author: String,
     permalink: String,
     body: String,
+    parent_id: Option[String],
     url: Option[String],
     imageURLs: List[String]
 )
@@ -55,6 +66,7 @@ object RedditScraper extends Reddit {
         r.author,
         r.permalink,
         s"${r.body}",
+        Some(r.parent_id),
         None,
         urls
       )
@@ -71,6 +83,7 @@ object RedditScraper extends Reddit {
         r.author,
         r.permalink,
         s"${r.title}\n\n${r.body}",
+        None,
         r.url,
         urls
       )
@@ -97,8 +110,49 @@ object RedditScraper extends Reddit {
     }
   }
 
+  def sentTestFn(body: String, coll: List[String]): Boolean = {
+    coll.find(s => body.contains(s)).isDefined
+  }
+
+  def sentiment(body: String): Sentiment = {
+    (
+      sentTestFn(body, cfg.sentiment.bull),
+      sentTestFn(body, cfg.sentiment.bear)
+    ) match {
+      case (true, true)   => Bear()
+      case (true, false)  => Bear()
+      case (false, true)  => Bull()
+      case (false, false) => Unknown()
+    }
+  }
+
+  def isException(symb: String): Boolean = {
+    cfg.market.exceptions.find(_ == symb).isDefined
+  }
+
+  def isIgnored(symb: String): Boolean = {
+    cfg.market.ignores.find(_ == symb).isDefined
+  }
+
+  def symbols(body: String): List[String] = {
+    market
+      .map(_.symbol)
+      .filter(s => {
+        if (isException(s))
+          s"(?i).*\\s*$s\\b.*".r.matches(body)
+        else if (isIgnored(s) || s.length() == 1)
+          false
+        else
+          s"(?i).*\\s*\\$$$s\\b.*".r.matches(body)
+      })
+  }
+
+  def sentimentFor(entry: RedditEntry): SentimentData = {
+    SentimentData(sentiment(entry.body), symbols(entry.body))
+  }
+
   def handle(entry: RedditEntry) = {
-    logger.info(s"${entry.author}: ${entry.body}")
+    logger.info(s"${entry.author}: ${entry.body} ${sentimentFor(entry)}")
   }
 }
 

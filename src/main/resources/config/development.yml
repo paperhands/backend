@@ -1,6 +1,6 @@
 reddit:
   secret: c1PyjStqy4XJ1w
-  thread_pool: 2
+  thread_pool: 1
 
 repository:
   adapter: pg
