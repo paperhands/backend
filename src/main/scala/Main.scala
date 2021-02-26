@@ -57,6 +57,16 @@ case class RedditEntryData(
 
 trait RedditItem
 
+case class RedditPost(
+    kind: String,
+    id: String,
+    name: String,
+    author: String,
+    permalink: String,
+    title: String,
+    body: String,
+    url: Option[String]
+) extends RedditItem
 case class RedditComment(
     kind: String,
     id: String,
@@ -65,16 +75,6 @@ case class RedditComment(
     permalink: String,
     body: String,
     parent_id: String
-) extends RedditItem
-case class RedditPost(
-    kind: String,
-    id: String,
-    name: String,
-    author: String,
-    permalink: String,
-    title: String,
-    selftext: String,
-    url: Option[String]
 ) extends RedditItem
 
 object RedditItem {
