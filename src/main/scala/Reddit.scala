@@ -2,6 +2,7 @@ package app.paperhands.reddit
 
 import sttp.client3._
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
+import sttp.model.StatusCodes
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -22,11 +23,12 @@ trait Reddit {
 
   def newItems(
       endpoint: Endpoint,
+      secret: String,
       before: String = ""
   ): Either[Error, List[RedditItem]] = {
     val limit = 100
-    val ts = System.currentTimeMillis()
-    val ua = s"linux:c1PyjStqy4XJ1w:0.0.1-$ts (by u/coderats)"
+    val ts = System.currentTimeMillis
+    val ua = s"linux:$secret:0.0.1-$ts (by u/coderats)"
     val url =
       endpoint match {
         case Posts =>
@@ -44,10 +46,13 @@ trait Reddit {
     val response = request.send(backend)
     var body = response.body.getOrElse("")
 
+    if (!response.code.isSuccess)
+      println(s"Received ${response.code} from $url")
+
     decode[RedditListing](body).map(RedditItem.fromListing(_))
   }
 
-  def loop() = {
+  def loop(secret: String) = {
     val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
     val emptyState = LoopState("", "", Map())
 
@@ -64,10 +69,10 @@ trait Reddit {
           s"Requesting data from $endpoint with $before as last seen item"
         )
 
-        val state = newItems(endpoint, before) match {
+        val state = newItems(endpoint, secret, before) match {
           case Right(items) =>
             val state = items.foldLeft(streamState)((state, item) => {
-              val name = item.getName()
+              val name = item.getName
 
               if (state.cache.get(name).isEmpty)
                 item match {
@@ -84,9 +89,9 @@ trait Reddit {
 
             items.headOption match {
               case Some(i: RedditComment) =>
-                state.copy(beforeComment = i.getName())
+                state.copy(beforeComment = i.getName)
               case Some(i: RedditPost) =>
-                state.copy(beforePost = i.getName())
+                state.copy(beforePost = i.getName)
               case _ => state
             }
           case Left(e) => {
@@ -95,7 +100,7 @@ trait Reddit {
           }
         }
 
-        Thread.sleep(1000 * 2)
+        Thread.sleep(1000 * 1)
 
         state
       })
@@ -126,7 +131,7 @@ case class RedditEntryData(
 ) extends RedditJsonCodec
 
 trait RedditItem {
-  def getName(): String
+  def getName: String
 }
 
 case class RedditPost(
@@ -139,7 +144,7 @@ case class RedditPost(
     body: String,
     url: Option[String]
 ) extends RedditItem {
-  def getName(): String = {
+  def getName: String = {
     this.name
   }
 }
@@ -152,7 +157,7 @@ case class RedditComment(
     body: String,
     parent_id: String
 ) extends RedditItem {
-  def getName(): String = {
+  def getName: String = {
     this.name
   }
 }

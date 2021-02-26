@@ -1,0 +1,38 @@
+version: "2.4"
+
+networks:
+  back-tier:
+
+services:
+  timescale:
+    image: timescale/timescaledb:2.0.1-pg12
+    restart: always
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./timescale/storage:/var/lib/postgresql/data
+      - ./timescale/docker-psql-init.sh:/docker-entrypoint-initdb.d/docker-psql-init.sh
+    environment:
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "root"
+    networks:
+      - back-tier
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.5
+
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - timescale
+      # - postgres
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning/:/etc/grafana/provisioning/
+    env_file:
+      - ./grafana/config.monitoring
+    networks:
+      - back-tier
+    restart: always

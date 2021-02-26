@@ -1,0 +1,15 @@
+
+compose-up:
+	docker-compose -f docker/docker-compose.yml up -d
+
+compose-down:
+	docker-compose -f docker/docker-compose.yml down
+
+docker-rm-storage:
+	sudo rm docker/postgres/storage -rf
+	sudo rm docker/timescale/storage -rf
+
+docker-chmod:
+	sudo chmod 777 -R docker/grafana
+
+compose-reset: compose-down docker-chmod docker-rm-storage compose-up

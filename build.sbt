@@ -4,7 +4,7 @@ val circeVersion = "0.14.0-M4"
 lazy val root = project
   .in(file("."))
   .settings(
-    name := "scala3-simple",
+    name := "app.paperhands",
     version := "0.1.0",
 
     scalaVersion := scala3Version,
@@ -16,5 +16,6 @@ lazy val root = project
       "io.circe"  %% "circe-generic"  % circeVersion,
       "io.circe"  %% "circe-parser"   % circeVersion,
       "io.circe"  %% "circe-jawn"     % circeVersion,
+      "io.circe"  %% "circe-yaml"     % "0.13.1"
     )
   )

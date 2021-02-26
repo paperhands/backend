@@ -1,0 +1,8 @@
+apk-update:
+	apk update
+
+apk-upgrade: apk-update
+	apk upgrade
+
+apk-deps: apk-upgrade
+	apk add --no-cache bash git openssh build-base curl tesseract-ocr-dev leptonica-dev
