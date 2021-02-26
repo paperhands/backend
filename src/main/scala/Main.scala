@@ -14,7 +14,8 @@ object Main extends App {
     .header("User-Agent", ua)
     .contentType("application/json")
     .get(
-      uri"https://www.reddit.com/r/wallstreetbets/new.json?before=$before&limit=$limit&raw_json=1"
+      // uri"https://www.reddit.com/r/wallstreetbets/new.json?before=$before&limit=$limit&raw_json=1"
+      uri"https://www.reddit.com/r/wallstreetbets/comments.json?before=$before&limit=$limit&raw_json=1"
     )
 
   val backend = HttpURLConnectionBackend()
@@ -24,16 +25,32 @@ object Main extends App {
 
   var body = response.body.getOrElse("")
   println(body)
-  val listing = decode[RedditJson](body)
+  val listing = decode[RedditListing](body)
   listing match {
     case Right(listing) => println(listing)
     case Left(err)      => println(err)
   }
 }
 
-sealed trait RedditJson
+sealed trait RedditJsonCodec
 
-// case class RedditListing(kind: String) extends RedditJson
-case class RedditListing(kind: String, data: RedditData) extends RedditJson
-case class RedditData(dist: Int, children: List[RedditEntry]) extends RedditJson
-case class RedditEntry(title: String) extends RedditJson
+// case class RedditListing(kind: String) extends RedditJsonCodec
+case class RedditListing(kind: Option[String], data: RedditListinData)
+    extends RedditJsonCodec
+case class RedditListinData(dist: Int, children: List[RedditEntry])
+    extends RedditJsonCodec
+case class RedditEntry(
+    kind: String,
+    data: RedditEntryData
+) extends RedditJsonCodec
+case class RedditEntryData(
+    id: String,
+    name: String,
+    parent_id: Option[String],
+    permalink: String,
+    title: Option[String],
+    selftext: Option[String],
+    body: Option[String],
+    url: Option[String],
+    author: String
+) extends RedditJsonCodec
