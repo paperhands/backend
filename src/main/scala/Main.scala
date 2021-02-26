@@ -1,6 +1,5 @@
 import sttp.client3._
-import io.circe.jawn.decode, io.circe.syntax._
-import io.circe.Codec
+import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 
 // @main def hello: Unit =
 object Main extends App {
@@ -21,19 +20,20 @@ object Main extends App {
   val backend = HttpURLConnectionBackend()
   val response = request.send(backend)
 
-  // response.header(...): Option[String]
-  println(response.header("Content-Length"))
-
   // response.body: by default read into an Either[String, String] to indicate failure or success
-  println(response.body)
 
-  val listing = decode[RedditJson](response.body.getOrElse(""))
+  var body = response.body.getOrElse("")
+  println(body)
+  val listing = decode[RedditJson](body)
   listing match {
     case Right(listing) => println(listing)
     case Left(err)      => println(err)
   }
 }
 
-sealed trait RedditJson derives Codec.AsObject
+sealed trait RedditJson
 
-case class Listing(kind: String) extends RedditJson
+// case class RedditListing(kind: String) extends RedditJson
+case class RedditListing(kind: String, data: RedditData) extends RedditJson
+case class RedditData(dist: Int, children: List[RedditEntry]) extends RedditJson
+case class RedditEntry(title: String) extends RedditJson
