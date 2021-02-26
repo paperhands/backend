@@ -4,30 +4,10 @@ import app.paperhands.reddit.{Reddit, RedditComment, RedditPost}
 import app.paperhands.config.{Config, Cfg}
 import app.paperhands.market.Market
 import app.paperhands.ocr.OCR
+import app.paperhands.model
+import app.paperhands.storage.Storage
 import com.typesafe.scalalogging.Logger
 import java.util.concurrent.Executors
-
-trait Sentiment
-case class Unknown() extends Sentiment
-case class Bull() extends Sentiment
-case class Bear() extends Sentiment
-
-case class SentimentData(
-    sentiment: Sentiment,
-    symbols: List[String]
-)
-
-case class RedditEntry(
-    kind: String,
-    id: String,
-    name: String,
-    author: String,
-    permalink: String,
-    body: String,
-    parent_id: Option[String],
-    url: Option[String],
-    imageURLs: List[String]
-)
 
 object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
@@ -56,7 +36,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     val urls = extractImageURLs(r.body)
 
     preHandle(
-      RedditEntry(
+      model.RedditEntry(
         r.kind,
         r.id,
         r.name,
@@ -73,7 +53,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     val urls = r.url.filter(isImageURL).toList ++ extractImageURLs(r.body)
 
     preHandle(
-      RedditEntry(
+      model.RedditEntry(
         r.kind,
         r.id,
         r.name,
@@ -87,7 +67,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
   }
 
-  def preHandle(entry: RedditEntry) = {
+  def preHandle(entry: model.RedditEntry) = {
     if (entry.imageURLs.length > 0) {
       logger.info(
         s"starting new thread to process ${entry.imageURLs.length} urls"
@@ -111,15 +91,15 @@ object RedditScraper extends Reddit with Cfg with Market {
     coll.find(s => body.contains(s)).isDefined
   }
 
-  def sentiment(body: String): Sentiment = {
+  def getSentimentValue(body: String): model.SentimentValue = {
     (
       sentTestFn(body, cfg.sentiment.bull),
       sentTestFn(body, cfg.sentiment.bear)
     ) match {
-      case (true, true)   => Bear()
-      case (true, false)  => Bear()
-      case (false, true)  => Bull()
-      case (false, false) => Unknown()
+      case (true, true)   => model.Bear()
+      case (true, false)  => model.Bear()
+      case (false, true)  => model.Bull()
+      case (false, false) => model.Unknown()
     }
   }
 
@@ -131,7 +111,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     cfg.market.ignores.find(_ == symb).isDefined
   }
 
-  def symbols(body: String): List[String] = {
+  def getSymbols(body: String): List[String] = {
     market
       .map(_.symbol)
       .filter(s => {
@@ -144,12 +124,27 @@ object RedditScraper extends Reddit with Cfg with Market {
       })
   }
 
-  def sentimentFor(entry: RedditEntry): SentimentData = {
-    SentimentData(sentiment(entry.body), symbols(entry.body))
+  def sentimentFor(
+      entry: model.RedditEntry,
+      symbols: List[String],
+      sentiment: model.SentimentValue
+  ): List[model.Sentiment] = {
+    model.Sentiment.fromSymbols(
+      symbols,
+      sentiment,
+      entry.name
+    )
   }
 
-  def handle(entry: RedditEntry) = {
-    logger.info(s"${entry.author}: ${entry.body} ${sentimentFor(entry)}")
+  def handle(entry: model.RedditEntry) = {
+    val symbols = getSymbols(entry.body)
+    val sentimentVal = getSentimentValue(entry.body)
+    val sentiments = sentimentFor(entry, symbols, sentimentVal)
+    val content =
+      model.Content.fromRedditEntry(entry, symbols, sentimentVal)
+    logger.info(s"${entry.author}: ${entry.body} $sentiments")
+    Storage.saveSentiments(sentiments)
+    Storage.saveContent(content)
   }
 }
 

@@ -8,6 +8,7 @@ lazy val root = project
     version := "0.1.0",
 
     scalaVersion := scala3Version,
+    scalacOptions += "-Ymacro-annotations",
 
     libraryDependencies ++=Seq(
       "com.novocode" % "junit-interface" % "0.11" % "test",
