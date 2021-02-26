@@ -27,7 +27,7 @@ object Main extends App {
   println(body)
   val listing = decode[RedditListing](body)
   listing match {
-    case Right(listing) => println(listing)
+    case Right(listing) => println(RedditItem.fromListing(listing))
     case Left(err)      => println(err)
   }
 }
@@ -54,3 +54,55 @@ case class RedditEntryData(
     url: Option[String],
     author: String
 ) extends RedditJsonCodec
+
+trait RedditItem
+
+case class RedditComment(
+    kind: String,
+    id: String,
+    name: String,
+    author: String,
+    permalink: String,
+    body: String,
+    parent_id: String
+) extends RedditItem
+case class RedditPost(
+    kind: String,
+    id: String,
+    name: String,
+    author: String,
+    permalink: String,
+    title: String,
+    selftext: String,
+    url: Option[String]
+) extends RedditItem
+
+object RedditItem {
+  def fromListing(listing: RedditListing): List[RedditItem] = {
+    listing.data.children.map(entry =>
+      entry.kind match {
+        case "t3" =>
+          RedditPost(
+            entry.kind,
+            entry.data.id,
+            entry.data.name,
+            entry.data.author,
+            entry.data.permalink,
+            entry.data.title.getOrElse(""),
+            entry.data.selftext.getOrElse(""),
+            entry.data.url
+          )
+        case "t1" =>
+          RedditComment(
+            entry.kind,
+            entry.data.id,
+            entry.data.name,
+            entry.data.author,
+            entry.data.permalink,
+            entry.data.body.getOrElse(""),
+            entry.data.parent_id.getOrElse("")
+          )
+      }
+    )
+  }
+}
