@@ -80,17 +80,9 @@ trait Reddit {
               if (state.cache.get(name).isEmpty)
                 item match {
                   case c: RedditComment =>
-                    new Thread {
-                      override def run = {
-                        handleComment(c)
-                      }
-                    }
+                    handleComment(c)
                   case p: RedditPost =>
-                    new Thread {
-                      override def run = {
-                        handlePost(p)
-                      }
-                    }
+                    handlePost(p)
                 }
 
               state.copy(

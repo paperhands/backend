@@ -12,7 +12,7 @@ object OCR {
 
   def processFile(input: String): String = {
     logger.info(s"processing file $input")
-    val cmd = s"tesseract $input stdout --dpi $dpi -l eng"
+    val cmd = s"tesseract $input stdout -l eng"
     cmd.!!
   }
 
@@ -23,12 +23,19 @@ object OCR {
     logger.info(s"processing url $url -> $target")
 
     try {
-      val request = basicRequest
+      val response = basicRequest
         .response(asFile(targetFile))
         .get(uri"$url")
         .send(backend)
 
-      processFile(target)
+      val ct = response.header("Content-Type").getOrElse("")
+
+      if (ct.startsWith("image/")) {
+        processFile(target)
+      } else {
+        logger.info(s"skipping $url due to incorrect Content-Type $ct")
+        ""
+      }
     } catch {
       case e: Throwable =>
         logger.error(s"Error processing URL $url: $e")

@@ -13,7 +13,8 @@ case class RedditEntry(
     author: String,
     permalink: String,
     body: String,
-    url: Option[String]
+    url: Option[String],
+    imageURLs: List[String]
 )
 
 object RedditScraper extends Reddit {
@@ -29,50 +30,69 @@ object RedditScraper extends Reddit {
 
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
-  def extractURLs(body: String): String = {
+  def extractImageURLs(body: String): List[String] = {
 
     urlPattern
       .findAllIn(body)
       .toList
       .filter(isImageURL)
-      .map(processURL)
-      .mkString("")
   }
 
   def handleComment(r: RedditComment) = {
-    val bodyOut = extractURLs(r.body)
+    val urls = extractImageURLs(r.body)
 
-    handle(
+    preHandle(
       RedditEntry(
         r.kind,
         r.id,
         r.name,
         r.author,
         r.permalink,
-        s"${r.body}$bodyOut",
-        None
+        s"${r.body}",
+        None,
+        urls
       )
     )
   }
   def handlePost(r: RedditPost) = {
-    val urlOut = r.url.filter(isImageURL).map(processURL)
-    val bodyOut = extractURLs(r.body)
+    val urls = r.url.filter(isImageURL).toList ++ extractImageURLs(r.body)
 
-    handle(
+    preHandle(
       RedditEntry(
         r.kind,
         r.id,
         r.name,
         r.author,
         r.permalink,
-        s"${r.title}\n\n${r.body}$urlOut$bodyOut",
-        r.url
+        s"${r.title}\n\n${r.body}",
+        r.url,
+        urls
       )
     )
   }
 
+  def preHandle(entry: RedditEntry) = {
+    if (entry.imageURLs.length > 0) {
+      logger.info(
+        s"starting new thread to process ${entry.imageURLs.length} urls"
+      )
+
+      new Thread {
+        override def run = {
+          val urlsOut = entry.imageURLs.map(processURL).mkString("")
+
+          logger.info(s"Result of media processing: $urlsOut")
+
+          handle(entry.copy(body = s"${entry.body}$urlsOut"))
+        }
+      }.start
+    } else {
+      handle(entry)
+    }
+  }
+
   def handle(entry: RedditEntry) = {
-    logger.info(s"${entry.author}: ${entry.body}")
+    // logger.info(s"${entry.author}: ${entry.body}")
   }
 }
 
