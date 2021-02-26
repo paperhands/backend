@@ -19,7 +19,7 @@ case class LoopState(
 )
 
 trait Reddit {
-  var logger = Logger("reddit")
+  val logger = Logger("reddit")
 
   def handleComment(comment: RedditComment)
   def handlePost(post: RedditPost)
@@ -47,7 +47,7 @@ trait Reddit {
 
     val backend = HttpURLConnectionBackend()
     val response = request.send(backend)
-    var body = response.body.getOrElse("")
+    val body = response.body.getOrElse("")
 
     if (!response.code.isSuccess)
       logger.error(s"Received ${response.code} from $url")

@@ -8,7 +8,8 @@ case class Ticket(
 )
 
 object Market {
-  var files = List("custom.txt", "nasdaqlisted.txt", "otherlisted.txt")
+  val files = List("custom.txt", "nasdaqlisted.txt", "otherlisted.txt")
+
   def load: List[Ticket] = {
     files
       .map(f => Source.fromResource(s"data/$f").getLines())
