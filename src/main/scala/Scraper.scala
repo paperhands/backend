@@ -139,11 +139,11 @@ object RedditScraper extends Reddit {
       .map(_.symbol)
       .filter(s => {
         if (isException(s))
-          s"(?i).*\\s*$s\\b.*".r.matches(body)
+          s"(?is).*\\s*$s\\b.*".r.matches(body)
         else if (isIgnored(s) || s.length() == 1)
           false
         else
-          s"(?i).*\\s*\\$$$s\\b.*".r.matches(body)
+          s"(?is).*\\s*\\$$$s\\b.*".r.matches(body)
       })
   }
 
