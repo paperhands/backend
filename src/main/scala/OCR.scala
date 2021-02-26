@@ -22,13 +22,17 @@ object OCR {
 
     logger.info(s"processing url $url -> $target")
 
-    // try {
-    val request = basicRequest
-      .response(asFile(targetFile))
-      .get(uri"$url")
-      .send(backend)
+    try {
+      val request = basicRequest
+        .response(asFile(targetFile))
+        .get(uri"$url")
+        .send(backend)
 
-    processFile(target)
-    // } finally targetFile.delete()
+      processFile(target)
+    } catch {
+      case e: Throwable =>
+        logger.error(s"Error processing URL $url: $e")
+        ""
+    } finally targetFile.delete()
   }
 }

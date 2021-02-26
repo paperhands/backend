@@ -55,7 +55,7 @@ object RedditScraper extends Reddit {
     )
   }
   def handlePost(r: RedditPost) = {
-    val urlOut = r.url.map(processURL)
+    val urlOut = r.url.filter(isImageURL).map(processURL)
     val bodyOut = extractURLs(r.body)
 
     handle(

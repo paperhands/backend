@@ -14,6 +14,16 @@ class ScraperTest {
     )
   }
 
+  @Test def t11(): Unit = {
+    assertEquals(
+      false,
+      RedditScraper
+        .isImageURL(
+          "https://www.facebook.com/tindahannibebang01/videos/230375435418803/?vh=e"
+        )
+    )
+  }
+
   @Test def t2(): Unit = {
     assertEquals(
       true,
@@ -45,10 +55,7 @@ class ScraperTest {
           this is my dope link https://d1wvxg652jdms0.cloudfront.net/diy-dependabot-clojure/pr-preview.png
           """
         )
-        .contains("""
-          https://d1wvxg652jdms0.cloudfront.net/diy-dependabot-clojure/pr-preview.png:
-          [error] [Automated] Update dependencies #4
-          """.stripMargin)
+        .contains("[Automated] Update dependencies #4")
     )
   }
 }
