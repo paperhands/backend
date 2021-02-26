@@ -1,11 +1,8 @@
-resources/data/nasdaqlisted.txt:
+src/main/resources/data/nasdaqlisted.txt:
 	curl ftp://ftp.nasdaqtrader.com/symboldirectory/nasdaqlisted.txt > $@
 
-resources/data/otherlisted.txt:
+src/main/resources/data/otherlisted.txt:
 	curl ftp://ftp.nasdaqtrader.com/symboldirectory/otherlisted.txt > $@
 
-resources/data/words.txt:
-	curl https://raw.githubusercontent.com/dwyl/english-words/master/words.txt > $@
-
 .PHONY: data
-data:  resources/data/words.txt resources/data/nasdaqlisted.txt resources/data/otherlisted.txt
+data:  src/main/resources/data/nasdaqlisted.txt src/main/resources/data/otherlisted.txt

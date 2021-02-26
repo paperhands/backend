@@ -3,6 +3,7 @@ package app.paperhands.reddit
 import sttp.client3._
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.model.StatusCodes
+import com.typesafe.scalalogging.Logger
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -18,6 +19,8 @@ case class LoopState(
 )
 
 trait Reddit {
+  var logger = Logger("reddit")
+
   def handleComment(comment: RedditComment)
   def handlePost(post: RedditPost)
 
@@ -47,7 +50,7 @@ trait Reddit {
     var body = response.body.getOrElse("")
 
     if (!response.code.isSuccess)
-      println(s"Received ${response.code} from $url")
+      logger.error(s"Received ${response.code} from $url")
 
     decode[RedditListing](body).map(RedditItem.fromListing(_))
   }
@@ -65,7 +68,7 @@ trait Reddit {
           case Comments => streamState.beforeComment
         }
 
-        println(
+        logger.debug(
           s"Requesting data from $endpoint with $before as last seen item"
         )
 
@@ -95,7 +98,7 @@ trait Reddit {
               case _ => state
             }
           case Left(e) => {
-            println(s"Error parsing data: $e")
+            logger.error(s"Error parsing data: $e")
             streamState
           }
         }

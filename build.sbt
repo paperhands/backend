@@ -16,6 +16,8 @@ lazy val root = project
       "io.circe"  %% "circe-generic"  % circeVersion,
       "io.circe"  %% "circe-parser"   % circeVersion,
       "io.circe"  %% "circe-jawn"     % circeVersion,
-      "io.circe"  %% "circe-yaml"     % "0.13.1"
+      "io.circe"  %% "circe-yaml"     % "0.13.1",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
     )
   )
