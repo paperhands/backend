@@ -7,6 +7,10 @@ case class Ticket(
     desc: String
 )
 
+trait Market {
+  val market = Market.load
+}
+
 object Market {
   val files = List("custom.txt", "nasdaqlisted.txt", "otherlisted.txt")
 

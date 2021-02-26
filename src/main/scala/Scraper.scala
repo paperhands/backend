@@ -1,7 +1,7 @@
 package app.paperhands.scraper
 
 import app.paperhands.reddit.{Reddit, RedditComment, RedditPost}
-import app.paperhands.config.Config
+import app.paperhands.config.{Config, Cfg}
 import app.paperhands.market.Market
 import app.paperhands.ocr.OCR
 import com.typesafe.scalalogging.Logger
@@ -29,10 +29,7 @@ case class RedditEntry(
     imageURLs: List[String]
 )
 
-object RedditScraper extends Reddit {
-  val cfg = Config.load
-  val market = Market.load
-
+object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
@@ -156,9 +153,8 @@ object RedditScraper extends Reddit {
   }
 }
 
-object Scraper {
+object Scraper extends Cfg {
   def run = {
-    val cfg = Config.load
     RedditScraper.loop(cfg.reddit.secret)
   }
 }

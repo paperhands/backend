@@ -36,6 +36,10 @@ case class Market(
     ignores: List[String]
 )
 
+trait Cfg {
+  val cfg = Config.load
+}
+
 object Config {
   def load: Config = {
     val env = sys.env.getOrElse("PAPERHANDS_ENV", "development")

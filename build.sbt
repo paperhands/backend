@@ -19,5 +19,10 @@ lazy val root = project
       "io.circe"  %% "circe-yaml"     % "0.13.1",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.tpolecat" %% "doobie-core"      % "0.9.0",
+      "org.tpolecat" %% "doobie-postgres"  % "0.9.0",
+      "org.scalactic" %% "scalactic" % "3.2.5",
+      "org.scalatest" %% "scalatest" % "3.2.5" % "test",
     )
+
   )
