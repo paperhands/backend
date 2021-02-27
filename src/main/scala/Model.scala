@@ -6,8 +6,11 @@ import org.postgresql.util.PGobject
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
 import java.util.Date
+import java.sql.Timestamp
 
-trait JSONExtension {
+trait DoobieMetas {
+  import doobie.util.meta._
+
   implicit val contentMetaMeta: Meta[ContentMeta] =
     Meta.Advanced
       .other[PGobject]("jsonb")

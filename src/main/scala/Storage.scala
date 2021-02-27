@@ -9,7 +9,7 @@ import cats.effect._
 import cats.implicits._
 import doobie.util.ExecutionContexts
 
-object Storage extends Cfg with model.JSONExtension {
+object Storage extends Cfg with model.DoobieMetas {
   import doobie.util.meta._
 
   implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
