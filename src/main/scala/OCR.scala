@@ -52,8 +52,7 @@ object OCR {
           logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}")
         )
         request <- constructRequest(url, tmpF)
-        response <- request
-          .send(backend)
+        response <- request.send(backend)
         shouldProcess <- IO(
           response
             .header("Content-Type")
