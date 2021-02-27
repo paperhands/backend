@@ -150,8 +150,9 @@ object Entry {
 
   def bodyFromRedditEntry(entry: RedditEntry): String =
     entry.kind match {
-      case "t1" => s"${entry.data.body}"
-      case "t3" => s"${entry.data.title}: ${entry.data.selftext}"
+      case "t1" => s"${entry.data.body.getOrElse("")}"
+      case "t3" =>
+        s"${entry.data.title.map(v => s"$v: ").getOrElse("")}${entry.data.selftext.getOrElse("")}"
     }
 
   def fromListing(listing: RedditListing): List[Entry] =

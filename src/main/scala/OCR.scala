@@ -8,11 +8,11 @@ import sttp.client3._
 object OCR {
   val backend = HttpURLConnectionBackend()
   val logger = Logger("ocr")
-  val dpi = 150
+  val dpi = 70
 
   def processFile(input: String): String = {
     logger.info(s"processing file $input")
-    val cmd = s"tesseract $input stdout -l eng"
+    val cmd = s"tesseract $input stdout --dpi $dpi -l eng"
     cmd.!!
   }
 
