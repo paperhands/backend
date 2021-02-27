@@ -124,7 +124,6 @@ trait Reddit {
 
 sealed trait RedditJsonCodec
 
-// case class RedditListing(kind: String) extends RedditJsonCodec
 case class RedditListing(kind: Option[String], data: RedditListinData)
     extends RedditJsonCodec
 case class RedditListinData(dist: Int, children: List[RedditEntry])
