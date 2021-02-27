@@ -13,6 +13,8 @@ import cats._
 import cats.effect._
 import cats.implicits._
 
+import monocle.macros.syntax.all._
+
 object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
@@ -53,7 +55,7 @@ object RedditScraper extends Reddit with Cfg with Market {
 
       for {
         out <- processURLs(urls).as("OCR fibre")
-      } yield (handle(e.copy(body = s"${e.body}$out")))
+      } yield (handle(e.focus(_.body).modify(v => s"$v$out")))
     } else {
       handle(e)
     }

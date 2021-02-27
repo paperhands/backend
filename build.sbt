@@ -37,6 +37,8 @@ lazy val root = project
 
       "org.scalactic" %% "scalactic" % "3.2.5",
       "org.scalatest" %% "scalatest" % "3.2.5" % "test",
+       "com.github.julien-truffaut" %% "monocle-core"  % "3.0.0-M1",
+       "com.github.julien-truffaut" %% "monocle-macro" % "3.0.0-M1", // Not required for Scala 3
     )
 
   )

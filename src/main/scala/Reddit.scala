@@ -43,13 +43,8 @@ trait Reddit {
   def loadItems(
       endpoint: Endpoint,
       secret: String,
-      state: LoopState
+      before: Option[String]
   ): IO[Either[Error, List[Entry]]] = {
-    val before = endpoint match {
-      case Posts    => state.beforePost
-      case Comments => state.beforeComment
-    }
-
     val limit = 100
     val ts = System.currentTimeMillis
     val ua = s"linux:$secret:0.0.1-$ts (by u/coderats)"
@@ -68,7 +63,6 @@ trait Reddit {
 
     backend.use { implicit backend =>
       for {
-        _ <- IO(println("in backend use"))
         response <- request.send(backend)
         body <- IO(response.body.getOrElse(""))
         _ <- IO(
@@ -80,35 +74,13 @@ trait Reddit {
     }
   }
 
-  def updateState(
-      items: Either[Error, List[Entry]],
-      state: LoopState,
-      patternSize: Int
-  ): LoopState = {
-    val newState = items match {
-      case Right(items) =>
-        items.headOption.map(e => (e.kind, e.name)) match {
-          case Some(("t1", name)) =>
-            state.copy(beforeComment = name)
-          case Some(("t3", name)) =>
-            state.copy(beforePost = name)
-          case _ => state
-        }
-      case Left(e) => {
-        logger.error(s"Error parsing data: $e")
-        state
-      }
-    }
-
-    val ni = state.index + 1
-    val newIndex = if (ni >= patternSize) 0 else ni
-
-    newState.copy(index = newIndex)
-  }
+  def getBefore(
+      items: Either[Error, List[Entry]]
+  ): Option[String] =
+    items.toOption.map(_.headOption).flatten.map(_.name)
 
   def handleItems(
-      items: Either[Error, List[Entry]],
-      state: LoopState
+      items: Either[Error, List[Entry]]
   ): IO[List[Unit]] = {
     items match {
       case Right(items) =>
@@ -122,29 +94,32 @@ trait Reddit {
     }
   }
 
-  def loop(secret: String): IO[Unit] = {
-    val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
-    val emptyState = LoopState("", "", 0)
-
-    // TODO this can be split into to separate loops with simpler state,
-    // post loop can be called every 30 seconds
-    // while comments every 2 seconds
-    val io =
-      emptyState.iterateForeverM { state =>
-        {
-          val endpoint = pattern(state.index)
-
-          for {
-            items <- loadItems(endpoint, secret, state)
-            fibre <- handleItems(items, state).start
-            _ <- IO.sleep(2.seconds)
-            _ <- fibre.join
-          } yield (updateState(items, state, pattern.length))
-        }
+  def startLoopFor(
+      endpoint: Endpoint,
+      secret: String,
+      state: Option[String],
+      delay: FiniteDuration
+  ): IO[Unit] =
+    state.iterateForeverM { before =>
+      {
+        for {
+          items <- loadItems(endpoint, secret, before)
+          fibre <- handleItems(items).start
+          _ <- IO.sleep(delay)
+          _ <- fibre.join
+        } yield (getBefore(items))
       }
+    }
+
+  def loop(secret: String): IO[Unit] = {
+    val commentsIO = startLoopFor(Comments, secret, None, 2.seconds)
+    val postsIO = startLoopFor(Comments, secret, None, 30.seconds)
 
     for {
-      _ <- io
+      fc <- commentsIO.start
+      fp <- postsIO.start
+      _ <- fc.join
+      _ <- fp.join
     } yield ()
   }
 }
