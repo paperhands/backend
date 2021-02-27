@@ -12,6 +12,9 @@ import doobie.util.ExecutionContexts
 object Storage extends Cfg with model.DoobieMetas {
   implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
 
+  // TODO figure out while connection pool is getting closed all the time
+  // probably has nicer integration with Cats
+  // but i dunno
   val xa = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",
     s"jdbc:postgresql:${cfg.repository.database}",
