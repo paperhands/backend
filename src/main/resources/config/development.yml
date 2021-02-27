@@ -30,6 +30,7 @@ sentiment:
     - 💎
     - 🚀
     - 🦍
+    - 📈
   bear:
     - down
     - sell
@@ -37,6 +38,7 @@ sentiment:
     - put opt
     - 🐻
     - 🧸
+    - 📉
 
 market:
   meta:
