@@ -1,4 +1,5 @@
 target/
 .metals/
 .bloop/
+.bsp/
 src/main/resources/data/

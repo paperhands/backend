@@ -10,8 +10,6 @@ import cats.implicits._
 import doobie.util.ExecutionContexts
 
 object Storage extends Cfg with model.DoobieMetas {
-  import doobie.util.meta._
-
   implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
 
   val xa = Transactor.fromDriverManager[IO](
@@ -19,10 +17,6 @@ object Storage extends Cfg with model.DoobieMetas {
     s"jdbc:postgresql:${cfg.repository.database}",
     cfg.repository.user,
     cfg.repository.password
-    // this is for testing
-    // Blocker.liftExecutionContext(
-    //   ExecutionContexts.synchronous
-    // )
   )
 
   def saveSentiments(sents: List[model.Sentiment]) = {
@@ -38,8 +32,6 @@ object Storage extends Cfg with model.DoobieMetas {
   }
 
   def saveContent(entry: model.Content) = {
-    println(s"CONTENT TIME ${entry.created_time}")
-
     val sql = """
       INSERT INTO
       content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
