@@ -1,6 +1,6 @@
 package app.paperhands.scraper
 
-import app.paperhands.reddit.{Reddit, RedditComment, RedditPost}
+import app.paperhands.reddit.{Reddit, Entry}
 import app.paperhands.config.{Config, Cfg}
 import app.paperhands.market.Market
 import app.paperhands.ocr.OCR
@@ -32,60 +32,28 @@ object RedditScraper extends Reddit with Cfg with Market {
       .filter(isImageURL)
   }
 
-  def handleComment(r: RedditComment) = {
-    val urls = extractImageURLs(r.body)
+  def handleEntry(e: Entry) =
+    preHandle(e)
 
-    preHandle(
-      model.RedditEntry(
-        r.kind,
-        r.id,
-        r.name,
-        r.author,
-        r.permalink,
-        s"${r.body}",
-        Some(r.parent_id),
-        r.created_time,
-        None,
-        urls
-      )
-    )
-  }
-  def handlePost(r: RedditPost) = {
-    val urls = r.url.filter(isImageURL).toList ++ extractImageURLs(r.body)
+  def preHandle(e: Entry) = {
+    val urls = e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
-    preHandle(
-      model.RedditEntry(
-        r.kind,
-        r.id,
-        r.name,
-        r.author,
-        r.permalink,
-        s"${r.title}\n\n${r.body}",
-        None,
-        r.created_time,
-        r.url,
-        urls
-      )
-    )
-  }
-
-  def preHandle(entry: model.RedditEntry) = {
-    if (entry.imageURLs.length > 0) {
+    if (urls.length > 0) {
       logger.info(
-        s"starting new thread to process ${entry.imageURLs.length} urls"
+        s"starting new thread to process ${urls.length} urls"
       )
 
       val thread = new Thread {
         override def run = {
-          val urlsOut = entry.imageURLs.map(processURL).mkString("")
+          val urlsOut = urls.map(processURL).mkString("")
           logger.info(s"Result of media processing: $urlsOut")
-          handle(entry.copy(body = s"${entry.body}$urlsOut"))
+          handle(e.copy(body = s"${e.body}$urlsOut"))
         }
       }
 
       pool.submit(thread)
     } else {
-      handle(entry)
+      handle(e)
     }
   }
 
@@ -127,7 +95,7 @@ object RedditScraper extends Reddit with Cfg with Market {
   }
 
   def sentimentFor(
-      entry: model.RedditEntry,
+      entry: Entry,
       symbols: List[String],
       sentiment: model.SentimentValue
   ): List[model.Sentiment] = {
@@ -138,7 +106,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
   }
 
-  def handle(entry: model.RedditEntry) = {
+  def handle(entry: Entry) = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)

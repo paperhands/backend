@@ -7,6 +7,7 @@ import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
 import java.util.Date
 import java.sql.Timestamp
+import app.paperhands.reddit.Entry
 
 trait DoobieMetas {
   import doobie.util.meta._
@@ -24,19 +25,6 @@ trait DoobieMetas {
       })
 }
 
-case class RedditEntry(
-    kind: String,
-    id: String,
-    name: String,
-    author: String,
-    permalink: String,
-    body: String,
-    parent_id: Option[String],
-    created_time: Date,
-    url: Option[String],
-    imageURLs: List[String]
-)
-
 case class Content(
     id: String,
     kind: String,
@@ -53,7 +41,7 @@ case class Content(
 
 object Content {
   def fromRedditEntry(
-      entry: RedditEntry,
+      entry: Entry,
       symbols: List[String],
       sentiment: SentimentValue
   ): Content = {

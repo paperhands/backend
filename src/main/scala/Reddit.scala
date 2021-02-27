@@ -22,14 +22,13 @@ case class LoopState(
 trait Reddit {
   val logger = Logger("reddit")
 
-  def handleComment(comment: RedditComment)
-  def handlePost(post: RedditPost)
+  def handleEntry(entry: Entry)
 
   def newItems(
       endpoint: Endpoint,
       secret: String,
       before: String = ""
-  ): Either[Error, List[RedditItem]] = {
+  ): Either[Error, List[Entry]] = {
     val limit = 100
     val ts = System.currentTimeMillis
     val ua = s"linux:$secret:0.0.1-$ts (by u/coderats)"
@@ -53,7 +52,7 @@ trait Reddit {
     if (!response.code.isSuccess)
       logger.error(s"Received ${response.code} from $url")
 
-    decode[RedditListing](body).map(RedditItem.fromListing(_))
+    decode[RedditListing](body).map(Entry.fromListing(_))
   }
 
   def loop(secret: String) = {
@@ -75,27 +74,20 @@ trait Reddit {
 
         val state = newItems(endpoint, secret, before) match {
           case Right(items) =>
-            val state = items.foldLeft(streamState)((state, item) => {
-              val name = item.getName
-
-              if (state.cache.get(name).isEmpty)
-                item match {
-                  case c: RedditComment =>
-                    handleComment(c)
-                  case p: RedditPost =>
-                    handlePost(p)
-                }
+            val state = items.foldLeft(streamState)((state, entry) => {
+              if (state.cache.get(entry.name).isEmpty)
+                handleEntry(entry)
 
               state.copy(
-                cache = state.cache + (name -> true)
+                cache = state.cache + (entry.name -> true)
               )
             })
 
-            items.headOption match {
-              case Some(i: RedditComment) =>
-                state.copy(beforeComment = i.getName)
-              case Some(i: RedditPost) =>
-                state.copy(beforePost = i.getName)
+            items.headOption.map(e => (e.kind, e.name)) match {
+              case Some(("t1", name)) =>
+                state.copy(beforeComment = name)
+              case Some(("t3", name)) =>
+                state.copy(beforePost = name)
               case _ => state
             }
           case Left(e) => {
@@ -135,74 +127,43 @@ case class RedditEntryData(
     created_utc: Option[Long]
 ) extends RedditJsonCodec
 
-trait RedditItem {
-  def getName: String
-}
-
-case class RedditPost(
-    kind: String,
-    id: String,
-    name: String,
-    author: String,
-    permalink: String,
-    title: String,
-    body: String,
-    url: Option[String],
-    created_time: Date
-) extends RedditItem {
-  def getName: String = {
-    this.name
-  }
-}
-case class RedditComment(
+case class Entry(
     kind: String,
     id: String,
     name: String,
     author: String,
     permalink: String,
     body: String,
-    parent_id: String,
-    created_time: Date
-) extends RedditItem {
-  def getName: String = {
-    this.name
-  }
-}
+    parent_id: Option[String],
+    created_time: Date,
+    url: Option[String]
+)
 
-object RedditItem {
+object Entry {
   def getTime(entry: RedditEntryData): Date = {
     entry.created_utc
       .map((t: Long) => new Date(t * 1000L))
       .getOrElse(Calendar.getInstance.getTime)
   }
 
-  def fromListing(listing: RedditListing): List[RedditItem] = {
+  def bodyFromRedditEntry(entry: RedditEntry): String =
+    entry.kind match {
+      case "t1" => s"${entry.data.body}"
+      case "t3" => s"${entry.data.title}: ${entry.data.selftext}"
+    }
+
+  def fromListing(listing: RedditListing): List[Entry] =
     listing.data.children.map(entry =>
-      entry.kind match {
-        case "t3" =>
-          RedditPost(
-            entry.kind,
-            entry.data.id,
-            entry.data.name,
-            entry.data.author,
-            entry.data.permalink,
-            entry.data.title.getOrElse(""),
-            entry.data.selftext.getOrElse(""),
-            entry.data.url,
-            getTime(entry.data)
-          )
-        case "t1" =>
-          RedditComment(
-            entry.kind,
-            entry.data.id,
-            entry.data.name,
-            entry.data.author,
-            entry.data.permalink,
-            entry.data.body.getOrElse(""),
-            entry.data.parent_id.getOrElse(""),
-            getTime(entry.data)
-          )
-      }
+      Entry(
+        entry.kind,
+        entry.data.id,
+        entry.data.name,
+        entry.data.author,
+        entry.data.permalink,
+        bodyFromRedditEntry(entry),
+        entry.data.parent_id,
+        getTime(entry.data),
+        entry.data.url
+      )
     )
-  }
 }
