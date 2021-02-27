@@ -1,11 +1,17 @@
 package app.paperhands.reddit
 
-import sttp.client3._
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.model.StatusCodes
 import com.typesafe.scalalogging.Logger
 import java.util.{Calendar, Date}
 import java.time.Instant
+import sttp.client3._
+import sttp.client3.http4s._
+import cats._
+import cats.effect._
+import cats.implicits._
+import scala.concurrent._
+import scala.concurrent.duration._
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -21,15 +27,27 @@ case class LoopState(
 )
 
 trait Reddit {
+  implicit val timer = IO.timer(ExecutionContext.global)
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  val blocker: cats.effect.Blocker =
+    Blocker.liftExecutionContext(ExecutionContext.global)
+  val backend =
+    Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
+
   val logger = Logger("reddit")
 
-  def handleEntry(entry: Entry)
+  def handleEntry(entry: Entry): IO[Unit]
 
-  def newItems(
+  def loadItems(
       endpoint: Endpoint,
       secret: String,
-      before: String = ""
-  ): Either[Error, List[Entry]] = {
+      state: LoopState
+  ): IO[Either[Error, List[Entry]]] = {
+    val before = endpoint match {
+      case Posts    => state.beforePost
+      case Comments => state.beforeComment
+    }
+
     val limit = 100
     val ts = System.currentTimeMillis
     val ua = s"linux:$secret:0.0.1-$ts (by u/coderats)"
@@ -46,61 +64,77 @@ trait Reddit {
       .contentType("application/json")
       .get(url)
 
-    val backend = HttpURLConnectionBackend()
-    val response = request.send(backend)
-    val body = response.body.getOrElse("")
-
-    if (!response.code.isSuccess)
-      logger.error(s"Received ${response.code} from $url")
-
-    decode[RedditListing](body).map(Entry.fromListing(_))
+    backend.use { implicit backend =>
+      for {
+        _ <- IO(println("in backend use"))
+        response <- request.send(backend)
+        body <- IO(response.body.getOrElse(""))
+        _ <- IO(
+          if (!response.code.isSuccess)
+            logger.error(s"Received ${response.code} from $url")
+        )
+        result <- IO(decode[RedditListing](body).map(Entry.fromListing(_)))
+      } yield (result)
+    }
   }
 
-  def loop(secret: String) = {
-    val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
-    val emptyState = LoopState("", "", Map())
-
-    Stream
-      .continually(pattern)
-      .flatten
-      .foldLeft(emptyState)((streamState, endpoint) => {
-        val before = endpoint match {
-          case Posts    => streamState.beforePost
-          case Comments => streamState.beforeComment
-        }
-
-        logger.debug(
-          s"Requesting data from $endpoint with $before as last seen item"
-        )
-
-        val state = newItems(endpoint, secret, before) match {
-          case Right(items) =>
-            val state = items.foldLeft(streamState)((state, entry) => {
-              if (state.cache.get(entry.name).isEmpty)
-                handleEntry(entry)
-
-              state.copy(
-                cache = state.cache + (entry.name -> true)
-              )
+  def handleItems(
+      items: Either[Error, List[Entry]],
+      streamState: LoopState
+  ): IO[LoopState] = {
+    items match {
+      case Right(items) =>
+        val state = items.foldLeft(IO(streamState))((state, entry) => {
+          state
+            .flatMap(s => {
+              for {
+                _ <-
+                  if (s.cache.get(entry.name).isEmpty)
+                    handleEntry(entry)
+                  else
+                    IO.unit
+              } yield (s.copy(
+                cache = s.cache + (entry.name -> true)
+              ))
             })
+        })
 
-            items.headOption.map(e => (e.kind, e.name)) match {
-              case Some(("t1", name)) =>
-                state.copy(beforeComment = name)
-              case Some(("t3", name)) =>
-                state.copy(beforePost = name)
-              case _ => state
-            }
-          case Left(e) => {
-            logger.error(s"Error parsing data: $e")
-            streamState
-          }
+        items.headOption.map(e => (e.kind, e.name)) match {
+          case Some(("t1", name)) =>
+            state.flatMap(v => IO(v.copy(beforeComment = name)))
+          case Some(("t3", name)) =>
+            state.flatMap(v => IO(v.copy(beforePost = name)))
+          case _ => state
         }
+      case Left(e) => {
+        logger.error(s"Error parsing data: $e")
+        IO(streamState)
+      }
+    }
+  }
 
-        Thread.sleep(1000 * 1)
+  def loop(secret: String): IO[Unit] = {
+    val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
+    val emptyState = IO(LoopState("", "", Map()))
 
-        state
-      })
+    val io =
+      Stream
+        .continually(pattern)
+        .flatten
+        .take(5)
+        .foldLeft(emptyState)((streamState, endpoint) => {
+          for {
+            _ <- IO(println("in shitty for in foldLeft"))
+            streamState <- streamState
+            items <- loadItems(endpoint, secret, streamState)
+            state <- handleItems(items, streamState)
+            _ <- IO.sleep(2.seconds)
+          } yield (state)
+        })
+
+    for {
+      _ <- io
+    } yield ()
   }
 }
 

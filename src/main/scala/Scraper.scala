@@ -9,15 +9,26 @@ import app.paperhands.storage.Storage
 import com.typesafe.scalalogging.Logger
 import java.util.concurrent.Executors
 
+import cats._
+import cats.effect._
+import cats.implicits._
+
 object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
   val pool = Executors.newFixedThreadPool(cfg.reddit.thread_pool)
 
-  def processURL(url: String): String = {
-    val out = OCR.processURL(url)
-    s"\n$url:\n$out"
+  def processURL(url: String): IO[String] = {
+    for {
+      out <- IO(OCR.processURL(url))
+    } yield (s"\n$url:\n$out")
+  }
+
+  def processURLs(urls: List[String]): IO[String] = {
+    for {
+      url <- urls.traverse(processURL)
+    } yield (url.mkString(""))
   }
 
   def isImageURL(url: String): Boolean = {
@@ -32,10 +43,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       .filter(isImageURL)
   }
 
-  def handleEntry(e: Entry) =
-    preHandle(e)
-
-  def preHandle(e: Entry) = {
+  def handleEntry(e: Entry): IO[Unit] = {
     val urls = e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
     if (urls.length > 0) {
@@ -45,12 +53,18 @@ object RedditScraper extends Reddit with Cfg with Market {
 
       val thread = new Thread {
         override def run = {
-          val urlsOut = urls.map(processURL).mkString("")
-          handle(e.copy(body = s"${e.body}$urlsOut"))
+          val io = for {
+            out <- processURLs(urls)
+            // TODO think about better way achieving this
+            _ <- handle(e.copy(body = s"${e.body}$out"))
+          } yield ()
+
+          io.unsafeRunSync()
         }
       }
 
       pool.submit(thread)
+      IO.unit
     } else {
       handle(e)
     }
@@ -105,20 +119,27 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
   }
 
-  def handle(entry: Entry) = {
+  def handle(entry: Entry): IO[Unit] = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
     val content =
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
-    logger.info(s"${entry.author}: ${entry.body} $sentiments")
-    Storage.saveSentiments(sentiments)
-    Storage.saveContent(content)
+
+    Blocker[IO].use { blocker =>
+      for {
+        _ <-
+          blocker.blockOn(
+            IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
+          )
+        _ <- blocker.blockOn(Storage.saveSentiments(sentiments))
+        _ <- blocker.blockOn(Storage.saveContent(content))
+      } yield ()
+    }
   }
 }
 
 object Scraper extends Cfg {
-  def run = {
+  def run =
     RedditScraper.loop(cfg.reddit.secret)
-  }
 }

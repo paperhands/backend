@@ -19,7 +19,7 @@ object Storage extends Cfg with model.DoobieMetas {
     cfg.repository.password
   )
 
-  def saveSentiments(sents: List[model.Sentiment]) = {
+  def saveSentiments(sents: List[model.Sentiment]): IO[Int] = {
     val sql = """
       INSERT INTO
       sentiments(created_time, symbol, origin_id, score, confidence)
@@ -27,11 +27,10 @@ object Storage extends Cfg with model.DoobieMetas {
     """
     val prog = Update[model.Sentiment](sql).updateMany(sents)
 
-    val io = prog.transact(xa)
-    io.unsafeRunSync
+    prog.transact(xa)
   }
 
-  def saveContent(entry: model.Content) = {
+  def saveContent(entry: model.Content): IO[Int] = {
     val sql = """
       INSERT INTO
       content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
@@ -40,7 +39,6 @@ object Storage extends Cfg with model.DoobieMetas {
     """
     val prog = Update[model.Content](sql).run(entry)
 
-    val io = prog.transact(xa)
-    io.unsafeRunSync
+    prog.transact(xa)
   }
 }
