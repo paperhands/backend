@@ -4,6 +4,7 @@ import sttp.client3._
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.model.StatusCodes
 import com.typesafe.scalalogging.Logger
+import java.util.{Calendar, Date}
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -130,7 +131,8 @@ case class RedditEntryData(
     selftext: Option[String],
     body: Option[String],
     url: Option[String],
-    author: String
+    author: String,
+    created_utc: Option[Long]
 ) extends RedditJsonCodec
 
 trait RedditItem {
@@ -145,7 +147,8 @@ case class RedditPost(
     permalink: String,
     title: String,
     body: String,
-    url: Option[String]
+    url: Option[String],
+    created_time: Date
 ) extends RedditItem {
   def getName: String = {
     this.name
@@ -158,7 +161,8 @@ case class RedditComment(
     author: String,
     permalink: String,
     body: String,
-    parent_id: String
+    parent_id: String,
+    created_time: Date
 ) extends RedditItem {
   def getName: String = {
     this.name
@@ -166,6 +170,12 @@ case class RedditComment(
 }
 
 object RedditItem {
+  def getTime(entry: RedditEntryData): Date = {
+    entry.created_utc
+      .map((t: Long) => new Date(t * 1000L))
+      .getOrElse(Calendar.getInstance.getTime)
+  }
+
   def fromListing(listing: RedditListing): List[RedditItem] = {
     listing.data.children.map(entry =>
       entry.kind match {
@@ -178,7 +188,8 @@ object RedditItem {
             entry.data.permalink,
             entry.data.title.getOrElse(""),
             entry.data.selftext.getOrElse(""),
-            entry.data.url
+            entry.data.url,
+            getTime(entry.data)
           )
         case "t1" =>
           RedditComment(
@@ -188,7 +199,8 @@ object RedditItem {
             entry.data.author,
             entry.data.permalink,
             entry.data.body.getOrElse(""),
-            entry.data.parent_id.getOrElse("")
+            entry.data.parent_id.getOrElse(""),
+            getTime(entry.data)
           )
       }
     )

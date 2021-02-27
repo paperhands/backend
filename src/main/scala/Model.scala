@@ -5,6 +5,7 @@ import doobie.implicits._
 import org.postgresql.util.PGobject
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
+import java.util.Date
 
 trait JSONExtension {
   implicit val contentMetaMeta: Meta[ContentMeta] =
@@ -28,6 +29,7 @@ case class RedditEntry(
     permalink: String,
     body: String,
     parent_id: Option[String],
+    created_time: Date,
     url: Option[String],
     imageURLs: List[String]
 )
@@ -40,6 +42,7 @@ case class Content(
     permalink: String,
     author: String,
     body: String,
+    created_time: Date,
     parsed: ContentMeta
 )
 
@@ -59,6 +62,7 @@ object Content {
       entry.permalink,
       entry.author,
       entry.body,
+      entry.created_time,
       ContentMeta(symbols, sentiment.getSentiment)
     )
   }

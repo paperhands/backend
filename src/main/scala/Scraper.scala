@@ -44,6 +44,7 @@ object RedditScraper extends Reddit with Cfg with Market {
         r.permalink,
         s"${r.body}",
         Some(r.parent_id),
+        r.created_time,
         None,
         urls
       )
@@ -61,6 +62,7 @@ object RedditScraper extends Reddit with Cfg with Market {
         r.permalink,
         s"${r.title}\n\n${r.body}",
         None,
+        r.created_time,
         r.url,
         urls
       )

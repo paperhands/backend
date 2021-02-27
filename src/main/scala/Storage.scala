@@ -10,6 +10,8 @@ import cats.implicits._
 import doobie.util.ExecutionContexts
 
 object Storage extends Cfg with model.JSONExtension {
+  import doobie.util.meta._
+
   implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
 
   val xa = Transactor.fromDriverManager[IO](
@@ -36,10 +38,12 @@ object Storage extends Cfg with model.JSONExtension {
   }
 
   def saveContent(entry: model.Content) = {
+    println(s"CONTENT TIME ${entry.created_time}")
+
     val sql = """
       INSERT INTO
-      content(id, type, origin, parent_id, permalink, author, body, parsed, created_time)
-      VALUES(?, ?, ?, ?, ?, ?, ?, ?, now())
+      content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now())
       ON CONFLICT DO NOTHING
     """
     val prog = Update[model.Content](sql).run(entry)
