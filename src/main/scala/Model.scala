@@ -5,12 +5,15 @@ import doobie.implicits._
 import org.postgresql.util.PGobject
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
-import java.util.Date
-import java.sql.Timestamp
+import java.time.Instant
 import app.paperhands.reddit.Entry
 
 trait DoobieMetas {
   import doobie.util.meta._
+  import doobie.implicits.javasql.TimestampMeta
+
+  implicit val JavaTimeInstantMeta: Meta[java.time.Instant] =
+    TimestampMeta.imap(_.toInstant)(java.sql.Timestamp.from)
 
   implicit val contentMetaMeta: Meta[ContentMeta] =
     Meta.Advanced
@@ -33,7 +36,7 @@ case class Content(
     permalink: String,
     author: String,
     body: String,
-    created_time: Date,
+    created_time: Instant,
     parsed: ContentMeta
 )
 

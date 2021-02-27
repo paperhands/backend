@@ -5,6 +5,7 @@ import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.model.StatusCodes
 import com.typesafe.scalalogging.Logger
 import java.util.{Calendar, Date}
+import java.time.Instant
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -135,15 +136,16 @@ case class Entry(
     permalink: String,
     body: String,
     parent_id: Option[String],
-    created_time: Date,
+    created_time: Instant,
     url: Option[String]
 )
 
 object Entry {
-  def getTime(entry: RedditEntryData): Date = {
+  def getTime(entry: RedditEntryData): Instant = {
     entry.created_utc
       .map((t: Long) => new Date(t * 1000L))
       .getOrElse(Calendar.getInstance.getTime)
+      .toInstant
   }
 
   def bodyFromRedditEntry(entry: RedditEntry): String =
