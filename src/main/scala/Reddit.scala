@@ -135,7 +135,6 @@ trait Reddit {
           val endpoint = pattern(state.index)
 
           for {
-            _ <- IO(println(s"endpoint is $endpoint from index ${state.index}"))
             items <- loadItems(endpoint, secret, state)
             fibre <- handleItems(items, state).start
             _ <- IO.sleep(2.seconds)
