@@ -24,7 +24,8 @@ import Endpoint._
 
 case class LoopState(
     beforePost: String,
-    beforeComment: String
+    beforeComment: String,
+    index: Int
 )
 
 trait Reddit {
@@ -81,9 +82,10 @@ trait Reddit {
 
   def updateState(
       items: Either[Error, List[Entry]],
-      state: LoopState
+      state: LoopState,
+      patternSize: Int
   ): LoopState = {
-    items match {
+    val newState = items match {
       case Right(items) =>
         items.headOption.map(e => (e.kind, e.name)) match {
           case Some(("t1", name)) =>
@@ -97,6 +99,11 @@ trait Reddit {
         state
       }
     }
+
+    val ni = state.index + 1
+    val newIndex = if (ni >= patternSize) 0 else ni
+
+    newState.copy(index = newIndex)
   }
 
   def handleItems(
@@ -117,24 +124,22 @@ trait Reddit {
 
   def loop(secret: String): IO[Unit] = {
     val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
-    val emptyState = IO(LoopState("", ""))
+    val emptyState = LoopState("", "", 0)
 
     val io =
-      Stream
-        .continually(pattern)
-        .flatten
-        .take(5)
-        .foldLeft(emptyState)((streamState, endpoint) => {
+      emptyState.iterateForeverM { state =>
+        {
+          val endpoint = pattern(state.index)
+
           for {
-            _ <- IO(println("in shitty for in foldLeft"))
-            streamState <- streamState
-            items <- loadItems(endpoint, secret, streamState)
-            state <- IO(updateState(items, streamState))
-            fibre <- handleItems(items, streamState).start
+            _ <- IO(println(s"endpoint is $endpoint from index ${state.index}"))
+            items <- loadItems(endpoint, secret, state)
+            fibre <- handleItems(items, state).start
             _ <- IO.sleep(2.seconds)
             _ <- fibre.join
-          } yield (state)
-        })
+          } yield (updateState(items, state, pattern.length))
+        }
+      }
 
     for {
       _ <- io

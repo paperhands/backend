@@ -115,16 +115,12 @@ object RedditScraper extends Reddit with Cfg with Market {
     val content =
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
-    Blocker[IO].use { blocker =>
-      for {
-        _ <-
-          blocker.blockOn(
-            IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
-          )
-        _ <- blocker.blockOn(Storage.saveSentiments(sentiments))
-        _ <- blocker.blockOn(Storage.saveContent(content))
-      } yield ()
-    }
+    for {
+      // _ <-
+      //   IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
+      _ <- Storage.saveSentiments(sentiments)
+      _ <- Storage.saveContent(content)
+    } yield ()
   }
 }
 
