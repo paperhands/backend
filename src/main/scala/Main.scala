@@ -1,3 +1,5 @@
+package app.paperhands
+
 import app.paperhands.scraper.Scraper
 
 // @main def hello: Unit =
