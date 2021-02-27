@@ -13,9 +13,20 @@ import cats._
 import cats.effect._
 import cats.implicits._
 
+import doobie._
+import doobie.implicits._
+import doobie.util.ExecutionContexts
+
 import monocle.macros.syntax.all._
 
 object RedditScraper extends Reddit with Cfg with Market {
+  val xa = Transactor.fromDriverManager[IO](
+    "org.postgresql.Driver",
+    s"jdbc:postgresql:${cfg.repository.database}",
+    cfg.repository.user,
+    cfg.repository.password
+  )
+
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
@@ -118,10 +129,10 @@ object RedditScraper extends Reddit with Cfg with Market {
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
     for {
-      // _ <-
-      //   IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
-      _ <- Storage.saveSentiments(sentiments)
-      _ <- Storage.saveContent(content)
+      _ <-
+        IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
+      _ <- Storage.saveSentiments(sentiments).transact(xa)
+      _ <- Storage.saveContent(content).transact(xa)
     } yield ()
   }
 }

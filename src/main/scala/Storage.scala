@@ -7,41 +7,24 @@ import doobie.implicits._
 import cats._
 import cats.effect._
 import cats.implicits._
-import doobie.util.ExecutionContexts
 
 object Storage extends Cfg with model.DoobieMetas {
-  implicit val cs = IO.contextShift(ExecutionContexts.synchronous)
-
-  // TODO figure out while connection pool is getting closed all the time
-  // probably has nicer integration with Cats
-  // but i dunno
-  val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    s"jdbc:postgresql:${cfg.repository.database}",
-    cfg.repository.user,
-    cfg.repository.password
-  )
-
-  def saveSentiments(sents: List[model.Sentiment]): IO[Int] = {
+  def saveSentiments(sents: List[model.Sentiment]): ConnectionIO[Int] = {
     val sql = """
       INSERT INTO
       sentiments(created_time, symbol, origin_id, score, confidence)
       VALUES(now(), ?, ?, ?, -1)
     """
-    val prog = Update[model.Sentiment](sql).updateMany(sents)
-
-    prog.transact(xa)
+    Update[model.Sentiment](sql).updateMany(sents)
   }
 
-  def saveContent(entry: model.Content): IO[Int] = {
+  def saveContent(entry: model.Content): ConnectionIO[Int] = {
     val sql = """
       INSERT INTO
       content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
       VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now())
       ON CONFLICT DO NOTHING
     """
-    val prog = Update[model.Content](sql).run(entry)
-
-    prog.transact(xa)
+    Update[model.Content](sql).run(entry)
   }
 }
