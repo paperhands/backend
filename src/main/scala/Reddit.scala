@@ -7,9 +7,11 @@ import java.util.{Calendar, Date}
 import java.time.Instant
 import sttp.client3._
 import sttp.client3.http4s._
+
 import cats._
 import cats.effect._
 import cats.implicits._
+
 import scala.concurrent._
 import scala.concurrent.duration._
 
@@ -22,8 +24,7 @@ import Endpoint._
 
 case class LoopState(
     beforePost: String,
-    beforeComment: String,
-    cache: Map[String, Boolean]
+    beforeComment: String
 )
 
 trait Reddit {
@@ -78,44 +79,45 @@ trait Reddit {
     }
   }
 
-  def handleItems(
+  def updateState(
       items: Either[Error, List[Entry]],
-      streamState: LoopState
-  ): IO[LoopState] = {
+      state: LoopState
+  ): LoopState = {
     items match {
       case Right(items) =>
-        val state = items.foldLeft(IO(streamState))((state, entry) => {
-          state
-            .flatMap(s => {
-              for {
-                _ <-
-                  if (s.cache.get(entry.name).isEmpty)
-                    handleEntry(entry)
-                  else
-                    IO.unit
-              } yield (s.copy(
-                cache = s.cache + (entry.name -> true)
-              ))
-            })
-        })
-
         items.headOption.map(e => (e.kind, e.name)) match {
           case Some(("t1", name)) =>
-            state.flatMap(v => IO(v.copy(beforeComment = name)))
+            state.copy(beforeComment = name)
           case Some(("t3", name)) =>
-            state.flatMap(v => IO(v.copy(beforePost = name)))
+            state.copy(beforePost = name)
           case _ => state
         }
       case Left(e) => {
         logger.error(s"Error parsing data: $e")
-        IO(streamState)
+        state
+      }
+    }
+  }
+
+  def handleItems(
+      items: Either[Error, List[Entry]],
+      state: LoopState
+  ): IO[List[Unit]] = {
+    items match {
+      case Right(items) =>
+        items.traverse(entry => {
+          handleEntry(entry)
+        })
+      case Left(e) => {
+        logger.error(s"Error parsing data: $e")
+        IO(List())
       }
     }
   }
 
   def loop(secret: String): IO[Unit] = {
     val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
-    val emptyState = IO(LoopState("", "", Map()))
+    val emptyState = IO(LoopState("", ""))
 
     val io =
       Stream
@@ -127,8 +129,10 @@ trait Reddit {
             _ <- IO(println("in shitty for in foldLeft"))
             streamState <- streamState
             items <- loadItems(endpoint, secret, streamState)
-            state <- handleItems(items, streamState)
+            state <- IO(updateState(items, streamState))
+            fibre <- handleItems(items, streamState).start
             _ <- IO.sleep(2.seconds)
+            _ <- fibre.join
           } yield (state)
         })
 

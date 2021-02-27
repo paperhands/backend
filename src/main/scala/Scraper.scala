@@ -51,20 +51,9 @@ object RedditScraper extends Reddit with Cfg with Market {
         s"starting new thread to process ${urls.length} urls"
       )
 
-      val thread = new Thread {
-        override def run = {
-          val io = for {
-            out <- processURLs(urls)
-            // TODO think about better way achieving this
-            _ <- handle(e.copy(body = s"${e.body}$out"))
-          } yield ()
-
-          io.unsafeRunSync()
-        }
-      }
-
-      pool.submit(thread)
-      IO.unit
+      for {
+        out <- processURLs(urls).as("OCR fibre")
+      } yield (handle(e.copy(body = s"${e.body}$out")))
     } else {
       handle(e)
     }
