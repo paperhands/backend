@@ -18,6 +18,15 @@ object Storage extends Cfg with model.DoobieMetas {
     Update[model.Sentiment](sql).updateMany(sents)
   }
 
+  def saveEngagements(sents: List[model.Engagement]): ConnectionIO[Int] = {
+    val sql = """
+    INSERT INTO
+    engagements(symbol, origin_id, created_time)
+    VALUES(?, ?, now())
+    """
+    Update[model.Engagement](sql).updateMany(sents)
+  }
+
   def saveContent(entry: model.Content): ConnectionIO[Int] = {
     val sql = """
       INSERT INTO

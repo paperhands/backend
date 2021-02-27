@@ -113,26 +113,36 @@ object RedditScraper extends Reddit with Cfg with Market {
       entry: Entry,
       symbols: List[String],
       sentiment: model.SentimentValue
-  ): List[model.Sentiment] = {
+  ): List[model.Sentiment] =
     model.Sentiment.fromSymbols(
       symbols,
       sentiment,
       entry.name
     )
-  }
+
+  def engagementFor(
+      entry: Entry,
+      symbols: List[String]
+  ): List[model.Engagement] =
+    model.Engagement.fromSymbols(
+      symbols,
+      entry.name
+    )
 
   def handle(entry: Entry): IO[Unit] = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
+    val engagements = engagementFor(entry, symbols)
     val content =
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
     for {
       _ <-
         IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
-      _ <- Storage.saveSentiments(sentiments).transact(xa)
       _ <- Storage.saveContent(content).transact(xa)
+      _ <- Storage.saveSentiments(sentiments).transact(xa)
+      _ <- Storage.saveEngagements(engagements).transact(xa)
     } yield ()
   }
 }

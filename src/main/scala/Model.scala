@@ -92,3 +92,14 @@ object Sentiment {
     symbols.map(Sentiment(_, origin_id, sentiment.getSentiment))
   }
 }
+
+case class Engagement(symbol: String, origin_id: String)
+
+object Engagement {
+  def fromSymbols(
+      symbols: List[String],
+      origin_id: String
+  ): List[Engagement] = {
+    symbols.map(Engagement(_, origin_id))
+  }
+}
