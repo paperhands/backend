@@ -126,6 +126,9 @@ trait Reddit {
     val pattern = (1 to 10).map(_ => Comments) ++ List(Posts)
     val emptyState = LoopState("", "", 0)
 
+    // TODO this can be split into to separate loops with simpler state,
+    // post loop can be called every 30 seconds
+    // while comments every 2 seconds
     val io =
       emptyState.iterateForeverM { state =>
         {
