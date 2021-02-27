@@ -46,7 +46,6 @@ object RedditScraper extends Reddit with Cfg with Market {
       val thread = new Thread {
         override def run = {
           val urlsOut = urls.map(processURL).mkString("")
-          logger.info(s"Result of media processing: $urlsOut")
           handle(e.copy(body = s"${e.body}$urlsOut"))
         }
       }

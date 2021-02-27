@@ -11,7 +11,6 @@ object OCR {
   val dpi = 70
 
   def processFile(input: String): String = {
-    logger.info(s"processing file $input")
     val cmd = s"tesseract $input stdout --dpi $dpi -l eng"
     cmd.!!
   }
