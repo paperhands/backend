@@ -31,8 +31,6 @@ case class LoopState(
 trait Reddit {
   implicit val timer = IO.timer(ExecutionContext.global)
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-  val blocker: cats.effect.Blocker =
-    Blocker.liftExecutionContext(ExecutionContext.global)
   val backend =
     Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 
@@ -113,7 +111,7 @@ trait Reddit {
 
   def loop(secret: String): IO[Unit] = {
     val commentsIO = startLoopFor(Comments, secret, None, 2.seconds)
-    val postsIO = startLoopFor(Comments, secret, None, 30.seconds)
+    val postsIO = startLoopFor(Posts, secret, None, 30.seconds)
 
     for {
       fc <- commentsIO.start
