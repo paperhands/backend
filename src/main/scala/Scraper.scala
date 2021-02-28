@@ -168,6 +168,8 @@ object RedditScraper extends Reddit with Cfg with Market {
 }
 
 object Scraper extends Cfg {
-  def run =
-    RedditScraper.loop(cfg.reddit.secret)
+  def run: IO[ExitCode] =
+    for {
+      _ <- RedditScraper.loop(cfg.reddit.secret)
+    } yield (ExitCode.Success)
 }

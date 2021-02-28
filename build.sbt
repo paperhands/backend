@@ -40,6 +40,8 @@ lazy val root = project
        "io.monix" %% "minitest" % "2.9.3" % "test",
        "io.monix" %% "minitest-laws" % "2.9.3" % "test",
        "com.codecommit" %% "cats-effect-testing-minitest" % "0.5.2" % "test",
+
+       "org.flywaydb"  % "flyway-core"     % "7.5.2",
     ),
 
   )
