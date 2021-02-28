@@ -15,7 +15,9 @@ DESC LIMIT {:limit}
 
 -- name: get_mention_timeseries
 SELECT
-  symbol, COUNT(score) AS value, time_bucket({:bucket}, created_time) as time_interval
+  symbol,
+  COUNT(score) AS value,
+  time_bucket({:bucket}, created_time) as time_interval
 FROM sentiments
 WHERE created_time > {:start}
   AND created_time < {:end}
@@ -25,14 +27,14 @@ ORDER BY time_interval ASC
 
 -- name: get_sentiment_timeseries
 SELECT
-  time_bucket({:bucket}, created_time) AS time_interval,
+  symbol,
   SUM(
     CASE
       WHEN score = 2 THEN -1
       WHEN score < 2 THEN score
     END
   ) AS value,
-  symbol
+  time_bucket({:bucket}, created_time) AS time_interval
 FROM
   sentiments
 WHERE created_time > {:start}

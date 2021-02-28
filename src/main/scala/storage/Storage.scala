@@ -86,4 +86,76 @@ object Storage extends model.DoobieMetas {
     """
       .query[model.Trending]
       .to[List]
+
+  def getEngagementTimeseries(
+      symbol: String,
+      bucket: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[List[model.TimeSeries]] =
+    sql"""
+      SELECT
+        symbol,
+        COUNT(*) AS value,
+        time_bucket($bucket, created_time) as time_interval
+      FROM engagements
+      WHERE created_time > $start
+        AND created_time < $end
+        AND symbol = $symbol
+      GROUP BY symbol, time_interval
+      ORDER BY time_interval ASC
+    """
+      .query[model.TimeSeries]
+      .to[List]
+
+  def getMentionTimeseries(
+      symbol: String,
+      bucket: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[List[model.TimeSeries]] =
+    sql"""
+      SELECT
+        symbol,
+        COUNT(*) AS value,
+        time_bucket($bucket, created_time) as time_interval
+      FROM sentiments
+      WHERE created_time > $start
+        AND created_time < $end
+        AND symbol = $symbol
+      GROUP BY symbol, time_interval
+      ORDER BY time_interval ASC
+    """
+      .query[model.TimeSeries]
+      .to[List]
+
+  def getSentimentTimeseries(
+      symbol: String,
+      bucket: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[List[model.TimeSeries]] =
+    sql"""
+      SELECT
+        symbol,
+        SUM(
+          CASE
+            WHEN score = 2 THEN -1
+            WHEN score < 2 THEN score
+          END
+        ) AS value,
+        time_bucket($bucket, created_time) AS time_interval
+      FROM
+        sentiments
+      WHERE created_time > $start
+        AND created_time < $end
+        AND symbol = $symbol
+      GROUP BY
+        symbol,
+        time_interval
+      ORDER BY
+        time_interval ASC
+    """
+      .query[model.TimeSeries]
+      .to[List]
 }

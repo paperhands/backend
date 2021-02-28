@@ -11,6 +11,7 @@ import org.http4s.implicits._
 import org.http4s.circe._
 
 import app.paperhands.model
+import app.paperhands.chart._
 import app.paperhands.market.Market
 import app.paperhands.storage.{ConnectionPool, Storage}
 
@@ -73,13 +74,29 @@ object QuoteTrending extends Market {
 }
 
 case class QuoteDetails(
+    mentions: ChartResponse,
+    engagements: ChartResponse,
+    sentiments: ChartResponse
 )
+
+object QuoteDetails {
+  def fromTimeSeries(
+      mentions: List[model.TimeSeries],
+      engagements: List[model.TimeSeries],
+      sentiments: List[model.TimeSeries]
+  ) =
+    QuoteDetails(
+      Chart.fromTimeSeries(mentions),
+      Chart.fromTimeSeries(engagements),
+      Chart.fromTimeSeries(sentiments)
+    )
+}
 
 trait Encoders {
   implicit val QuoteTrendingsEncoder: EntityEncoder[IO, List[QuoteTrending]] =
     jsonEncoderOf[IO, List[QuoteTrending]]
-  implicit val QuoteDetailsEncoder: EntityEncoder[IO, List[QuoteDetails]] =
-    jsonEncoderOf[IO, List[QuoteDetails]]
+  implicit val QuoteDetailsEncoder: EntityEncoder[IO, QuoteDetails] =
+    jsonEncoderOf[IO, QuoteDetails]
 }
 
 object Handler extends ConnectionPool with Encoders {
@@ -108,14 +125,26 @@ object Handler extends ConnectionPool with Encoders {
     } yield (QuoteTrending.fromTrending(previous, present))
   }
 
-  def getDetails(symbol: String, period: String): IO[List[QuoteDetails]] = {
+  def getDetails(symbol: String, period: String): IO[QuoteDetails] = {
     val now = LocalDateTime.now()
     val dayAgo = now.minusDays(1)
 
     val start = toInstant(dayAgo)
     val end = toInstant(now)
 
-    IO(List())
+    val bucket = "15 minutes"
+
+    for {
+      mentions <- Storage
+        .getMentionTimeseries(symbol, bucket, start, end)
+        .transact(xa)
+      engagements <- Storage
+        .getEngagementTimeseries(symbol, bucket, start, end)
+        .transact(xa)
+      sentiments <- Storage
+        .getSentimentTimeseries(symbol, bucket, start, end)
+        .transact(xa)
+    } yield (QuoteDetails.fromTimeSeries(mentions, engagements, sentiments))
   }
 
   val paperhandsService = HttpRoutes.of[IO] {

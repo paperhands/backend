@@ -3,7 +3,9 @@ INSERT INTO engagements(created_time, symbol, origin_id) VALUES(now(), {:symbol}
 
 -- name: get_engagement_timeseries
 SELECT
-  symbol, COUNT(*) AS value, time_bucket({:bucket}, created_time) as time_interval
+  symbol,
+  COUNT(*) AS value,
+  time_bucket({:bucket}, created_time) as time_interval
 FROM engagements
 WHERE created_time > {:start}
   AND created_time < {:end}
