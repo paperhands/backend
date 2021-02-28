@@ -55,7 +55,8 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
           s"starting new thread to process ${urls.length} urls"
         )
         out <- processURLs(urls)
-      } yield (handle(e.focus(_.body).modify(v => s"$v$out")))
+        _ <- handle(e.focus(_.body).modify(v => s"$v$out"))
+      } yield ()
     } else {
       handle(e)
     }
