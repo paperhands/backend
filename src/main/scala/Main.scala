@@ -10,11 +10,11 @@ import app.paperhands.flyway.MyFlyway
 object Main extends IOApp {
   override def run(args: List[String]): IO[ExitCode] =
     args.headOption match {
-      case Some("scrape") => Scraper.run
-      case Some("server") => Server.run
-      case Some("flyway") => MyFlyway.run(args(1))
+      case Some("scrape")                    => Scraper.run
+      case Some("server")                    => Server.run
+      case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
       case _ => {
-        IO(println("Unknown command"))
+        IO(println(s"""Unknown command "${args.mkString(" ")}" """))
           .flatMap(_ => IO.pure(ExitCode.Error))
       }
     }
