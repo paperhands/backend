@@ -32,29 +32,24 @@ object RedditScraper extends Reddit with Cfg with Market {
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
   val pool = Executors.newFixedThreadPool(cfg.reddit.thread_pool)
 
-  def processURL(url: String): IO[String] = {
+  def processURL(url: String): IO[String] =
     for {
       out <- IO(OCR.processURL(url))
     } yield (s"\n$url:\n$out")
-  }
 
-  def processURLs(urls: List[String]): IO[String] = {
+  def processURLs(urls: List[String]): IO[String] =
     for {
       url <- urls.traverse(processURL)
     } yield (url.mkString(""))
-  }
 
-  def isImageURL(url: String): Boolean = {
+  def isImageURL(url: String): Boolean =
     imgPattern.matches(url)
-  }
 
-  def extractImageURLs(body: String): List[String] = {
-
+  def extractImageURLs(body: String): List[String] =
     urlPattern
       .findAllIn(body)
       .toList
       .filter(isImageURL)
-  }
 
   def handleEntry(e: Entry): IO[Unit] = {
     val urls = e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
@@ -72,11 +67,10 @@ object RedditScraper extends Reddit with Cfg with Market {
     }
   }
 
-  def sentTestFn(body: String, coll: List[String]): Boolean = {
+  def sentTestFn(body: String, coll: List[String]): Boolean =
     coll.find(s => body.contains(s)).isDefined
-  }
 
-  def getSentimentValue(body: String): model.SentimentValue = {
+  def getSentimentValue(body: String): model.SentimentValue =
     (
       sentTestFn(body, cfg.sentiment.bull),
       sentTestFn(body, cfg.sentiment.bear)
@@ -86,17 +80,14 @@ object RedditScraper extends Reddit with Cfg with Market {
       case (false, true)  => model.Bull()
       case (false, false) => model.Unknown()
     }
-  }
 
-  def isException(symb: String): Boolean = {
+  def isException(symb: String): Boolean =
     cfg.market.exceptions.find(_ == symb).isDefined
-  }
 
-  def isIgnored(symb: String): Boolean = {
+  def isIgnored(symb: String): Boolean =
     cfg.market.ignores.find(_ == symb).isDefined
-  }
 
-  def getSymbols(body: String): List[String] = {
+  def getSymbols(body: String): List[String] =
     market
       .map(_.symbol)
       .filter(s => {
@@ -115,7 +106,6 @@ object RedditScraper extends Reddit with Cfg with Market {
           s.length() > 1 &&
           desperationRe.matches(body))
       })
-  }
 
   def sentimentFor(
       entry: Entry,
