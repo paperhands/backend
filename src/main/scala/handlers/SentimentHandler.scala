@@ -11,7 +11,7 @@ import org.http4s.implicits._
 
 import app.paperhands.model
 import app.paperhands.market.Market
-import app.paperhands.storage.Storage
+import app.paperhands.storage.{ConnectionPool, Storage}
 
 import java.util.Calendar
 import java.time.LocalDateTime
@@ -23,6 +23,9 @@ import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
 
 import app.paperhands.io.Logger
+
+import doobie._
+import doobie.implicits._
 
 case class QuoteTrending(
     symbol: String,
@@ -37,37 +40,28 @@ object QuoteTrending extends Market {
     input.map(t => QuoteTrending(t.symbol, "", 0, t.popularity, 0))
 }
 
-object Handler {
+object Handler extends ConnectionPool {
   val logger = Logger("sentiment-handler")
 
-  // implicit def trendingEncoder: EntityEncoder[IO, QuoteTrending] =
-  //   Encoder.instance { qt: QuoteTrending =>
-  //     qt.asJson.noSpaces
-  //   }
-  // implicit def trendingsEncoder: EntityEncoder[IO, Seq[QuoteTrending]] =
-  //   Encoder.instance { qts: List[QuoteTrending] =>
-  //     qts.asJson.noSpaces
-  //   }
+  def getQuoteTrending: IO[List[QuoteTrending]] = {
+    val now = LocalDateTime.now()
+    val dayAgo = now.minusDays(1)
 
-  def getQuoteTrending: List[QuoteTrending] = {
-    // val now = LocalDateTime.now()
-    // val dayAgo = now.minusDays(1)
-
-    // val trending =
-    //   Storage.getTending(
-    //     now.toInstant(ZoneId.systemDefault),
-    //     dayAgo.toInstant(ZoneId.systemDefault),
-    //     30
-    //   )
-    // logger.warn(s"trending: $trending")
-
-    // QuoteTrending.fromTrending(trending)
-    List()
+    for {
+      trending <- Storage
+        .getTrending(
+          now.atZone(ZoneId.systemDefault).toInstant,
+          dayAgo.atZone(ZoneId.systemDefault).toInstant,
+          30
+        )
+        .transact(xa)
+      _ <- logger.warn(s"trending: $trending")
+    } yield (QuoteTrending.fromTrending(trending))
   }
 
   val paperhandsService = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "trending" =>
-      Ok(getQuoteTrending.asJson.noSpaces)
+      Ok(getQuoteTrending.map(_.asJson.noSpaces))
     case GET -> Root / "quote" / "details" / symbol / period =>
       Ok(s"details for $symbol with $period")
   }
