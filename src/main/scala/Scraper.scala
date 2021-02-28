@@ -91,9 +91,9 @@ object RedditScraper extends Reddit with Cfg with Market {
     market
       .map(_.symbol)
       .filter(s => {
-        val exceptionRe = s"(?is).*\\s*$s\\b.*".r
-        val normalRe = s"(?is).*\\s*\\$$$s\\b.*".r
-        val desperationRe = s"(?s).*\\b*$s\\b.*".r
+        val exceptionRe = s"(?is)[^\\s]*\\s*$s\\b[^\\b]*".r
+        val normalRe = s"(?is)[^\\s]*\\s*\\$$$s\\b[^\\b]*".r
+        val desperationRe = s"(?s)[^\\b]*\\b*$s\\b[^\\b]*".r
         // Logic here is if its an exception symbol just match for GME
         // otherwise try to match for $GME
         // if this did not work make sure its not an exception
