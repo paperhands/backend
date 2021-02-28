@@ -15,3 +15,6 @@ alpine-install-sbt:
 
 alpine-shell:
 	docker run -ti -v $(shell pwd):/app alpine
+
+alpine-test:
+	docker run -ti -v $(shell pwd):/app alpine sh -c 'cd /app && apk add make && make apk-deps alpine-install-sbt data test'
