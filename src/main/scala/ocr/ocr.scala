@@ -1,5 +1,4 @@
 package app.paperhands.ocr
-import com.typesafe.scalalogging.Logger
 import sys.process._
 import java.io.File
 
@@ -12,8 +11,10 @@ import cats.implicits._
 
 import scala.concurrent._
 
-object OCR {
-  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+import app.paperhands.io.Logger
+import app.paperhands.io.AddContextShift
+
+object OCR extends AddContextShift {
   val backend =
     Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 
@@ -23,7 +24,7 @@ object OCR {
   def processFile(input: String): IO[String] = {
     IO(s"tesseract $input stdout --dpi $dpi -l eng".!!).handleErrorWith(e =>
       for {
-        _ <- IO(logger.error(s"Error processing $input: $e"))
+        _ <- logger.error(s"Error processing $input: $e")
       } yield ("")
     )
   }
@@ -48,9 +49,7 @@ object OCR {
   def processURL(url: String): IO[String] =
     (tmpFile("ocr-", ".image"), backend).tupled.use { case (tmpF, backend) =>
       for {
-        _ <- IO(
-          logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}")
-        )
+        _ <- logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}")
         request <- constructRequest(url, tmpF)
         response <- request.send(backend)
         shouldProcess <- IO(

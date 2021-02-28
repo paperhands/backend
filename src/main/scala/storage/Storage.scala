@@ -1,14 +1,30 @@
 package app.paperhands.storage
 
+import java.time.Instant
+
+import app.paperhands.io.AddContextShift
 import app.paperhands.config.Cfg
 import app.paperhands.model
+
 import doobie._
 import doobie.implicits._
+
 import cats._
 import cats.effect._
 import cats.implicits._
 
-object Storage extends Cfg with model.DoobieMetas {
+import scala.concurrent._
+
+trait ConnectionPool extends Cfg with AddContextShift {
+  val xa = Transactor.fromDriverManager[IO](
+    "org.postgresql.Driver",
+    s"jdbc:postgresql:${cfg.repository.database}",
+    cfg.repository.user,
+    cfg.repository.password
+  )
+}
+
+object Storage extends model.DoobieMetas {
   def saveSentiments(sents: List[model.Sentiment]): ConnectionIO[Int] = {
     val sql = """
       INSERT INTO
@@ -37,7 +53,7 @@ object Storage extends Cfg with model.DoobieMetas {
     Update[model.Content](sql).run(entry)
   }
 
-  def getParsedTree(id: String): ConnectionIO[List[model.ContentMeta]] = {
+  def getParsedTree(id: String): ConnectionIO[List[model.ContentMeta]] =
     sql"""
       WITH RECURSIVE tree AS (
         SELECT id, created_time, origin_time, type, origin, parent_id, permalink, parsed
@@ -52,5 +68,22 @@ object Storage extends Cfg with model.DoobieMetas {
     """
       .query[model.ContentMeta]
       .to[List]
-  }
+
+  def getTrending(
+      start: Instant,
+      end: Instant,
+      limit: Int
+  ): ConnectionIO[List[model.Trending]] =
+    sql"""
+      SELECT
+        symbol,COUNT(score) AS popularity
+      FROM sentiments
+      WHERE created_time > $start
+        AND created_time < $end
+      GROUP BY symbol
+      ORDER BY COUNT(score)
+      DESC LIMIT $limit
+    """
+      .query[model.Trending]
+      .to[List]
 }

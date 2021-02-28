@@ -5,8 +5,9 @@ import app.paperhands.config.{Config, Cfg}
 import app.paperhands.market.Market
 import app.paperhands.ocr.OCR
 import app.paperhands.model
-import app.paperhands.storage.Storage
-import com.typesafe.scalalogging.Logger
+import app.paperhands.storage.{ConnectionPool, Storage}
+import app.paperhands.io.Logger
+
 import java.util.concurrent.Executors
 
 import cats._
@@ -19,14 +20,7 @@ import doobie.util.ExecutionContexts
 
 import monocle.macros.syntax.all._
 
-object RedditScraper extends Reddit with Cfg with Market {
-  val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    s"jdbc:postgresql:${cfg.repository.database}",
-    cfg.repository.user,
-    cfg.repository.password
-  )
-
+object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
@@ -55,11 +49,11 @@ object RedditScraper extends Reddit with Cfg with Market {
     val urls = e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
     if (urls.length > 0) {
-      logger.info(
-        s"starting new thread to process ${urls.length} urls"
-      )
 
       for {
+        _ <- logger.info(
+          s"starting new thread to process ${urls.length} urls"
+        )
         out <- processURLs(urls).as("OCR fibre")
       } yield (handle(e.focus(_.body).modify(v => s"$v$out")))
     } else {
@@ -154,12 +148,9 @@ object RedditScraper extends Reddit with Cfg with Market {
       engagements <- IO.pure(
         engagementFor(entry, (symbols ++ treeSymbols).distinct)
       )
-      _ <-
-        IO(
-          logger.info(
-            s"${entry.author}: ${entry.body}\nsenti: $sentiments\nenga: $engagements"
-          )
-        )
+      _ <- logger.info(
+        s"${entry.author}: ${entry.body}\nsenti: $sentiments\nenga: $engagements"
+      )
       _ <- Storage
         .saveEngagements(engagements)
         .transact(xa)

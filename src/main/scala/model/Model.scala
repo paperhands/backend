@@ -103,3 +103,8 @@ object Engagement {
     symbols.map(Engagement(_, origin_id))
   }
 }
+
+case class Trending(
+    symbol: String,
+    popularity: Int
+)

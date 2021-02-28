@@ -2,7 +2,6 @@ package app.paperhands.reddit
 
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.model.StatusCodes
-import com.typesafe.scalalogging.Logger
 import java.util.{Calendar, Date}
 import java.time.Instant
 import sttp.client3._
@@ -14,6 +13,9 @@ import cats.implicits._
 
 import scala.concurrent._
 import scala.concurrent.duration._
+
+import app.paperhands.io.Logger
+import app.paperhands.io.AddContextShift
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -28,9 +30,8 @@ case class LoopState(
     index: Int
 )
 
-trait Reddit {
+trait Reddit extends AddContextShift {
   implicit val timer = IO.timer(ExecutionContext.global)
-  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   val backend =
     Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 
@@ -63,10 +64,11 @@ trait Reddit {
       for {
         response <- request.send(backend)
         body <- IO(response.body.getOrElse(""))
-        _ <- IO(
+        _ <-
           if (!response.code.isSuccess)
             logger.error(s"Received ${response.code} from $url")
-        )
+          else
+            IO.unit
         result <- IO(decode[RedditListing](body).map(Entry.fromListing(_)))
       } yield (result)
     }
@@ -85,10 +87,10 @@ trait Reddit {
         items.traverse(entry => {
           handleEntry(entry)
         })
-      case Left(e) => {
-        logger.error(s"Error parsing data: $e")
-        IO(List())
-      }
+      case Left(e) =>
+        for {
+          _ <- logger.error(s"Error parsing data: $e")
+        } yield (List())
     }
   }
 
