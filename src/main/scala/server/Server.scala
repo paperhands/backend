@@ -19,7 +19,7 @@ object Server extends Cfg with AddContextShift {
   implicit val timer: Timer[IO] = IO.timer(global)
 
   val httpApp = Router(
-    "/api" -> paperhands.Handler.paperhandsService
+    "/api/v1" -> paperhands.Handler.paperhandsService
   ).orNotFound
 
   val serverBuilder = BlazeServerBuilder[IO](global)
