@@ -151,6 +151,6 @@ object Handler extends ConnectionPool with Encoders {
     case GET -> Root / "quote" / "trending" =>
       Ok(getQuoteTrending)
     case GET -> Root / "quote" / "details" / symbol / period =>
-      Ok(getDetails(symbol, period))
+      Ok(getDetails(symbol.toUpperCase, period))
   }
 }

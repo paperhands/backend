@@ -97,7 +97,7 @@ object Storage extends model.DoobieMetas {
       SELECT
         symbol,
         COUNT(*) AS value,
-        time_bucket($bucket, created_time) as time_interval
+        time_bucket($bucket :: interval, created_time) as time_interval
       FROM engagements
       WHERE created_time > $start
         AND created_time < $end
@@ -118,7 +118,7 @@ object Storage extends model.DoobieMetas {
       SELECT
         symbol,
         COUNT(*) AS value,
-        time_bucket($bucket, created_time) as time_interval
+        time_bucket($bucket :: interval, created_time) as time_interval
       FROM sentiments
       WHERE created_time > $start
         AND created_time < $end
@@ -144,7 +144,7 @@ object Storage extends model.DoobieMetas {
             WHEN score < 2 THEN score
           END
         ) AS value,
-        time_bucket($bucket, created_time) AS time_interval
+        time_bucket($bucket :: interval, created_time) AS time_interval
       FROM
         sentiments
       WHERE created_time > $start
