@@ -36,17 +36,17 @@ lazy val root = project
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
-      "org.tpolecat" %% "doobie-core"      % "0.9.0",
-      "org.tpolecat" %% "doobie-postgres"  % "0.9.0",
+      "org.tpolecat" %% "doobie-core"      % "0.10.0",
+      "org.tpolecat" %% "doobie-postgres"  % "0.10.0",
 
-       "com.github.julien-truffaut" %% "monocle-core"  % "3.0.0-M1",
-       "com.github.julien-truffaut" %% "monocle-macro" % "3.0.0-M1", // Not required for Scala 3
+       "com.github.julien-truffaut" %% "monocle-core"  % "3.0.0-M3",
+       "com.github.julien-truffaut" %% "monocle-macro" % "3.0.0-M3", // Not required for Scala 3
 
        "io.monix" %% "minitest" % "2.9.3" % "test",
        "io.monix" %% "minitest-laws" % "2.9.3" % "test",
        "com.codecommit" %% "cats-effect-testing-minitest" % "0.5.2" % "test",
 
-       "org.flywaydb"  % "flyway-core"     % "7.5.2",
+       "org.flywaydb"  % "flyway-core"     % "7.5.4",
     ),
 
   )
