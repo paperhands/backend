@@ -20,6 +20,7 @@ lazy val root = project
       "io.circe"  %% "circe-core"     % circeVersion,
       "io.circe"  %% "circe-generic"  % circeVersion,
       "io.circe"  %% "circe-parser"   % circeVersion,
+      "io.circe"  %% "circe-literal"  % circeVersion,
       "io.circe"  %% "circe-jawn"     % circeVersion,
       "io.circe"  %% "circe-yaml"     % "0.13.1",
 
@@ -28,6 +29,7 @@ lazy val root = project
 
       "org.http4s" %% "http4s-core" % http4sVersion,
       "org.http4s" %% "http4s-dsl" % http4sVersion,
+      "org.http4s" %% "http4s-circe" % http4sVersion,
       "org.http4s" %% "http4s-blaze-client" % http4sVersion,
       "org.http4s" %% "http4s-blaze-server" % http4sVersion,
 

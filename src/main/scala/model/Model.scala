@@ -106,5 +106,5 @@ object Engagement {
 
 case class Trending(
     symbol: String,
-    popularity: Int
+    popularity: Float
 )

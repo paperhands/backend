@@ -8,6 +8,7 @@ import org.http4s._
 import org.http4s.dsl.io._
 import org.http4s.server.blaze._
 import org.http4s.implicits._
+import org.http4s.circe._
 
 import app.paperhands.model
 import app.paperhands.market.Market
@@ -19,6 +20,7 @@ import java.time.LocalDateTime
 import doobie.util.meta._
 import java.time.ZoneId
 
+import io.circe.literal._
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
 
@@ -29,37 +31,81 @@ import doobie.implicits._
 
 case class QuoteTrending(
     symbol: String,
-    desc: String,
+    desc: Option[String],
     change_perc: Float,
     pos: Int,
     old_pos: Int
 )
 
 object QuoteTrending extends Market {
-  def fromTrending(input: List[model.Trending]): List[QuoteTrending] =
-    input.map(t => QuoteTrending(t.symbol, "", 0, t.popularity, 0))
+  def findDesc(symb: String) =
+    market.find(_.symbol == symb).map(_.desc)
+
+  def oldPos(symb: String, list: List[model.Trending]) =
+    list.indexWhere(_.symbol == symb)
+
+  def changePerc(
+      symb: String,
+      popularity: Float,
+      list: List[model.Trending]
+  ): Float = {
+    val oldPopularity = list
+      .find(_.symbol == symb)
+      .map(_.popularity)
+      .getOrElse(popularity)
+
+    Math.round((popularity - oldPopularity) / oldPopularity * 10000) / 100
+  }
+
+  def fromTrending(
+      previous: List[model.Trending],
+      present: List[model.Trending]
+  ): List[QuoteTrending] =
+    present.zipWithIndex.map { case (t, index) =>
+      QuoteTrending(
+        t.symbol,
+        findDesc(t.symbol),
+        changePerc(t.symbol, t.popularity, previous),
+        index,
+        oldPos(t.symbol, previous)
+      )
+    }
 }
 
-object Handler extends ConnectionPool {
+trait Encoders {
+  implicit val QuoteTrendingsEncoder: EntityEncoder[IO, List[QuoteTrending]] =
+    jsonEncoderOf[IO, List[QuoteTrending]]
+}
+
+object Handler extends ConnectionPool with Encoders {
   val logger = Logger("sentiment-handler")
+
+  def toInstant(in: LocalDateTime) =
+    in.atZone(ZoneId.systemDefault).toInstant
 
   def getQuoteTrending: IO[List[QuoteTrending]] = {
     val now = LocalDateTime.now()
     val dayAgo = now.minusDays(1)
-    val start = dayAgo.atZone(ZoneId.systemDefault).toInstant
-    val end = now.atZone(ZoneId.systemDefault).toInstant
+
+    val start = toInstant(dayAgo)
+    val end = toInstant(now)
+
+    val prevStart = toInstant(dayAgo.minusDays(1))
+    val prevEnd = toInstant(now.minusDays(1))
 
     for {
-      trending <- Storage
+      previous <- Storage
+        .getTrending(prevStart, prevEnd, 30)
+        .transact(xa)
+      present <- Storage
         .getTrending(start, end, 30)
         .transact(xa)
-      _ <- logger.warn(s"trending: $trending")
-    } yield (QuoteTrending.fromTrending(trending))
+    } yield (QuoteTrending.fromTrending(previous, present))
   }
 
   val paperhandsService = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "trending" =>
-      Ok(getQuoteTrending.map(_.asJson.noSpaces))
+      Ok(getQuoteTrending)
     case GET -> Root / "quote" / "details" / symbol / period =>
       Ok(s"details for $symbol with $period")
   }
