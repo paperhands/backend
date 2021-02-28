@@ -25,8 +25,11 @@ lazy val root = project
 
       "com.softwaremill.sttp.client3" %% "http4s-backend" % sttpVersion,
       "com.softwaremill.sttp.client3" %% "core" % sttpVersion,
+
       "org.http4s" %% "http4s-core" % http4sVersion,
+      "org.http4s" %% "http4s-dsl" % http4sVersion,
       "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+      "org.http4s" %% "http4s-blaze-server" % http4sVersion,
 
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
