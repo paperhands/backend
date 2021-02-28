@@ -72,9 +72,14 @@ object QuoteTrending extends Market {
     }
 }
 
+case class QuoteDetails(
+)
+
 trait Encoders {
   implicit val QuoteTrendingsEncoder: EntityEncoder[IO, List[QuoteTrending]] =
     jsonEncoderOf[IO, List[QuoteTrending]]
+  implicit val QuoteDetailsEncoder: EntityEncoder[IO, List[QuoteDetails]] =
+    jsonEncoderOf[IO, List[QuoteDetails]]
 }
 
 object Handler extends ConnectionPool with Encoders {
@@ -103,10 +108,20 @@ object Handler extends ConnectionPool with Encoders {
     } yield (QuoteTrending.fromTrending(previous, present))
   }
 
+  def getDetails(symbol: String, period: String): IO[List[QuoteDetails]] = {
+    val now = LocalDateTime.now()
+    val dayAgo = now.minusDays(1)
+
+    val start = toInstant(dayAgo)
+    val end = toInstant(now)
+
+    IO(List())
+  }
+
   val paperhandsService = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "trending" =>
       Ok(getQuoteTrending)
     case GET -> Root / "quote" / "details" / symbol / period =>
-      Ok(s"details for $symbol with $period")
+      Ok(getDetails(symbol, period))
   }
 }
