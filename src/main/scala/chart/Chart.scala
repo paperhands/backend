@@ -2,6 +2,10 @@ package app.paperhands.chart
 
 import app.paperhands.model
 
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.util.Date
+
 case class Spot(x: Int, y: Int)
 
 case class ChartResponse(
@@ -15,7 +19,12 @@ case class ChartResponse(
 )
 
 object Chart {
-  def includeLable(i: Int, limit: Int, totalNum: Int): Boolean =
+  def formatTime(t: Instant) = {
+    val df = new SimpleDateFormat("HH:mm")
+    df.format(Date.from(t))
+  }
+
+  def includeLabel(i: Int, limit: Int, totalNum: Int): Boolean =
     i == totalNum - 1 || i == 0 || (0 < i && i % (totalNum / limit) == 0 && i < totalNum)
 
   def getYLabels(min: Int, limit: Int, max: Int) = {
@@ -43,9 +52,14 @@ object Chart {
       Spot(index, v.value)
     }
 
-    val xTitles = input.zipWithIndex.map { case (v, index) =>
-      index -> v.time.toString()
-    }.toMap
+    val xTitles = input.zipWithIndex
+      .filter { case (v, index) =>
+        includeLabel(index, 5, input.length)
+      }
+      .map { case (v, index) =>
+        index -> formatTime(v.time)
+      }
+      .toMap
 
     ChartResponse(
       spots,
