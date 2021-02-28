@@ -128,20 +128,41 @@ object RedditScraper extends Reddit with Cfg with Market {
       entry.name
     )
 
+  def symbolsFromTree(tree: List[model.ContentMeta]): List[String] =
+    tree.map(_.symbols).flatten.distinct
+
+  def extractTreeSymbols(id: Option[String]): IO[List[String]] =
+    id match {
+      case Some(id) =>
+        for {
+          tree <- Storage.getParsedTree(id).transact(xa)
+        } yield (symbolsFromTree(tree))
+      case None => IO(List())
+    }
+
   def handle(entry: Entry): IO[Unit] = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
-    val engagements = engagementFor(entry, symbols)
     val content =
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
     for {
-      _ <-
-        IO(logger.info(s"${entry.author}: ${entry.body} $sentiments"))
       _ <- Storage.saveContent(content).transact(xa)
       _ <- Storage.saveSentiments(sentiments).transact(xa)
-      _ <- Storage.saveEngagements(engagements).transact(xa)
+      treeSymbols <- extractTreeSymbols(entry.parent_id)
+      engagements <- IO.pure(
+        engagementFor(entry, (symbols ++ treeSymbols).distinct)
+      )
+      _ <-
+        IO(
+          logger.info(
+            s"${entry.author}: ${entry.body}\nsenti: $sentiments\nenga: $engagements"
+          )
+        )
+      _ <- Storage
+        .saveEngagements(engagements)
+        .transact(xa)
     } yield ()
   }
 }

@@ -36,4 +36,21 @@ object Storage extends Cfg with model.DoobieMetas {
     """
     Update[model.Content](sql).run(entry)
   }
+
+  def getParsedTree(id: String): ConnectionIO[List[model.ContentMeta]] = {
+    sql"""
+      WITH RECURSIVE tree AS (
+        SELECT id, created_time, origin_time, type, origin, parent_id, permalink, parsed
+        FROM content
+        WHERE id = $id
+        UNION ALL
+          SELECT c.id, c.created_time, c.origin_time, c.type, c.origin, c.parent_id, c.permalink, c.parsed
+          FROM content c
+            JOIN tree
+            ON c.id = tree.parent_id
+      ) SELECT parsed FROM tree
+    """
+      .query[model.ContentMeta]
+      .to[List]
+  }
 }
