@@ -19,14 +19,21 @@ object OCR extends AddContextShift {
     Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 
   val logger = Logger("ocr")
-  val dpi = 70
+  val dpi = "70"
 
   def processFile(input: String): IO[String] = {
-    IO(s"tesseract $input stdout --dpi $dpi -l eng".!!).handleErrorWith(e =>
-      for {
-        _ <- logger.error(s"Error processing $input: $e")
-      } yield ("")
+    IO(
+      Process(
+        Seq("tesseract", input, "stdout", "--dpi", dpi, "-l", "eng"),
+        None,
+        "OMP_THREAD_LIMIT" -> "1"
+      ).!!
     )
+      .handleErrorWith(e =>
+        for {
+          _ <- logger.error(s"Error processing $input: $e")
+        } yield ("")
+      )
   }
 
   def tmpFile(prefix: String, postfix: String): Resource[IO, File] =
