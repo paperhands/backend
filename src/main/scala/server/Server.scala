@@ -24,7 +24,7 @@ object Server extends Cfg {
 
   val httpApp = Router("/api" -> paperhandsService).orNotFound
   val serverBuilder = BlazeServerBuilder[IO](global)
-    .bindHttp(8080, "localhost")
+    .bindHttp(cfg.http.port, cfg.http.host)
     .withHttpApp(httpApp)
 
   def run: IO[ExitCode] =

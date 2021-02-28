@@ -2,6 +2,10 @@ reddit:
   secret: c1PyjStqy4XJ1w
   thread_pool: 1
 
+http:
+  port: 8080
+  host: localhost
+
 repository:
   adapter: pg
   user: root

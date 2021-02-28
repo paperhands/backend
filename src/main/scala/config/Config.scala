@@ -9,6 +9,7 @@ import io.circe.yaml
 case class Config(
     reddit: Reddit,
     repository: Repository,
+    http: Http,
     sentiment: Sentiment,
     market: Market
 )
@@ -25,6 +26,10 @@ case class Repository(
     max_conns: Int,
     min_conns: Int,
     conn_lifetime: Int
+)
+case class Http(
+    port: Int,
+    host: String
 )
 case class Sentiment(
     bull: List[String],
