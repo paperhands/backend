@@ -1,10 +1,8 @@
-import org.junit.Test
-import org.junit.Assert._
+import minitest._
 import app.paperhands.scraper.RedditScraper
-import scala.io.Source
 
-class ScraperTest {
-  @Test def t1(): Unit = {
+object ScraperTestSuite extends SimpleTestSuite {
+  test("is image url") {
     assertEquals(
       false,
       RedditScraper
@@ -12,9 +10,7 @@ class ScraperTest {
           "https://www.reddit.com/r/wallstreetbets/comments/lt23qd/what_books_on_investments_do_you_suggest/"
         )
     )
-  }
 
-  @Test def t11(): Unit = {
     assertEquals(
       false,
       RedditScraper
@@ -22,9 +18,7 @@ class ScraperTest {
           "https://www.facebook.com/tindahannibebang01/videos/230375435418803/?vh=e"
         )
     )
-  }
 
-  @Test def t2(): Unit = {
     assertEquals(
       true,
       RedditScraper
@@ -34,28 +28,18 @@ class ScraperTest {
     )
   }
 
-  @Test def t3(): Unit = {
+  test("image url extraction from text") {
     assertEquals(
-      "",
-      RedditScraper
-        .extractURLs(
-          """
-          no link hear
-          """
-        )
+      List(),
+      RedditScraper.extractImageURLs("no link hear")
     )
-  }
 
-  @Test def t4(): Unit = {
+    val url =
+      "https://d1wvxg652jdms0.cloudfront.net/diy-dependabot-clojure/pr-preview.png"
+
     assertEquals(
-      true,
-      RedditScraper
-        .extractURLs(
-          """
-          this is my dope link https://d1wvxg652jdms0.cloudfront.net/diy-dependabot-clojure/pr-preview.png
-          """
-        )
-        .contains("[Automated] Update dependencies #4")
+      List(url),
+      RedditScraper.extractImageURLs(s"this is my dope link $url")
     )
   }
 }

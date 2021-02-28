@@ -14,10 +14,9 @@ lazy val root = project
     fork in run := true,
     cancelable in Global := true,
     Global / onChangedBuildSource := ReloadOnSourceChanges,
+    testFrameworks += new TestFramework("minitest.runner.Framework"),
 
     libraryDependencies ++=Seq(
-      "com.novocode" % "junit-interface" % "0.11" % "test",
-
       "io.circe"  %% "circe-core"     % circeVersion,
       "io.circe"  %% "circe-generic"  % circeVersion,
       "io.circe"  %% "circe-parser"   % circeVersion,
@@ -35,10 +34,12 @@ lazy val root = project
       "org.tpolecat" %% "doobie-core"      % "0.9.0",
       "org.tpolecat" %% "doobie-postgres"  % "0.9.0",
 
-      "org.scalactic" %% "scalactic" % "3.2.5",
-      "org.scalatest" %% "scalatest" % "3.2.5" % "test",
        "com.github.julien-truffaut" %% "monocle-core"  % "3.0.0-M1",
        "com.github.julien-truffaut" %% "monocle-macro" % "3.0.0-M1", // Not required for Scala 3
-    )
+
+       "io.monix" %% "minitest" % "2.9.3" % "test",
+       "io.monix" %% "minitest-laws" % "2.9.3" % "test",
+       "com.codecommit" %% "cats-effect-testing-minitest" % "0.5.2" % "test",
+    ),
 
   )
