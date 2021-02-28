@@ -75,9 +75,9 @@ object RedditScraper extends Reddit with Cfg with Market {
       sentTestFn(body, cfg.sentiment.bull),
       sentTestFn(body, cfg.sentiment.bear)
     ) match {
-      case (true, true)   => model.Bear()
-      case (true, false)  => model.Bear()
-      case (false, true)  => model.Bull()
+      case (true, true)   => model.Bull()
+      case (true, false)  => model.Bull()
+      case (false, true)  => model.Bear()
       case (false, false) => model.Unknown()
     }
 
