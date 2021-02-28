@@ -1,6 +1,7 @@
 package app.paperhands.server
 
 import app.paperhands.config.Cfg
+import app.paperhands.handlers.paperhands
 
 import cats._
 import cats.effect._
@@ -17,12 +18,10 @@ object Server extends Cfg {
   implicit val cs: ContextShift[IO] = IO.contextShift(global)
   implicit val timer: Timer[IO] = IO.timer(global)
 
-  val paperhandsService = HttpRoutes.of[IO] {
-    case GET -> Root / "hello" / name =>
-      Ok(s"Hello, $name.")
-  }
+  val httpApp = Router(
+    "/api" -> paperhands.Handler.paperhandsService
+  ).orNotFound
 
-  val httpApp = Router("/api" -> paperhandsService).orNotFound
   val serverBuilder = BlazeServerBuilder[IO](global)
     .bindHttp(cfg.http.port, cfg.http.host)
     .withHttpApp(httpApp)
