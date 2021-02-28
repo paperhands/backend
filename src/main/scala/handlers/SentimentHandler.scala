@@ -46,14 +46,12 @@ object Handler extends ConnectionPool {
   def getQuoteTrending: IO[List[QuoteTrending]] = {
     val now = LocalDateTime.now()
     val dayAgo = now.minusDays(1)
+    val start = dayAgo.atZone(ZoneId.systemDefault).toInstant
+    val end = now.atZone(ZoneId.systemDefault).toInstant
 
     for {
       trending <- Storage
-        .getTrending(
-          now.atZone(ZoneId.systemDefault).toInstant,
-          dayAgo.atZone(ZoneId.systemDefault).toInstant,
-          30
-        )
+        .getTrending(start, end, 30)
         .transact(xa)
       _ <- logger.warn(s"trending: $trending")
     } yield (QuoteTrending.fromTrending(trending))
