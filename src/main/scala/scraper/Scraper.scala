@@ -28,7 +28,7 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
 
   def processURL(url: String): IO[String] =
     for {
-      out <- IO(OCR.processURL(url))
+      out <- OCR.processURL(url)
     } yield (s"\n$url:\n$out")
 
   def processURLs(urls: List[String]): IO[String] =
