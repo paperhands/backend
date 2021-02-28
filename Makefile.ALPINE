@@ -5,4 +5,13 @@ apk-upgrade: apk-update
 	apk upgrade
 
 apk-deps: apk-upgrade
-	apk add --no-cache bash git openssh build-base curl tesseract-ocr-dev leptonica-dev
+	apk add --no-cache bash git openssh build-base curl ca-certificates tesseract-ocr leptonica openjdk11
+
+SBT_VERSION = 1.4.7
+alpine-install-sbt:
+	curl -fsL https://github.com/sbt/sbt/releases/download/v$(SBT_VERSION)/sbt-$(SBT_VERSION).tgz | tar xfz - -C /usr/local
+	ln -s /usr/local/sbt/bin/* /usr/local/bin/
+	sbt -Dsbt.rootdir=true sbtVersion
+
+alpine-shell:
+	docker run -ti -v $(shell pwd):/app alpine

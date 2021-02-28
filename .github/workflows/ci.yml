@@ -1,0 +1,13 @@
+name: CI
+
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine
+    steps:
+    - uses: actions/checkout@v2
+    - run: apk add make
+    - run: make apk-deps alpine-install-sbt data sbt-test
