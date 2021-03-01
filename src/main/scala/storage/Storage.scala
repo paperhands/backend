@@ -25,7 +25,7 @@ trait ConnectionPool extends Cfg with AddContextShift {
       be <- Blocker[IO] // our blocking EC
       xa <- HikariTransactor.newHikariTransactor[IO](
         "org.postgresql.Driver",
-        s"jdbc:postgresql:${cfg.repository.database}",
+        s"jdbc:postgresql://${cfg.repository.host}:${cfg.repository.port}/${cfg.repository.database}",
         cfg.repository.user,
         cfg.repository.password,
         ce, // await connection here
