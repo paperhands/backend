@@ -5,7 +5,7 @@ import app.paperhands.config.{Config, Cfg}
 import app.paperhands.market.Market
 import app.paperhands.ocr.OCR
 import app.paperhands.model
-import app.paperhands.storage.{ConnectionPool, Storage}
+import app.paperhands.storage.Storage
 import app.paperhands.io.Logger
 
 import java.util.concurrent.Executors
@@ -19,8 +19,9 @@ import doobie.implicits._
 import doobie.util.ExecutionContexts
 
 import monocle.macros.syntax.all._
+import doobie.hikari.HikariTransactor
 
-object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
+object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
@@ -48,10 +49,10 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
   def collectAllImageUrls(e: Entry): List[String] =
     e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
-  def handleEntry(e: Entry): IO[Unit] =
+  def handleEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
     for {
       out <- processURLs(collectAllImageUrls(e))
-      _ <- handle(e.focus(_.body).modify(v => s"$v$out"))
+      _ <- handle(xa, e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 
   def sentTestFn(body: String, coll: List[String]): Boolean =
@@ -118,7 +119,10 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
   def symbolsFromTree(tree: List[model.ContentMeta]): List[String] =
     tree.map(_.symbols).flatten.distinct
 
-  def extractTreeSymbols(id: Option[String]): IO[List[String]] =
+  def extractTreeSymbols(
+      xa: HikariTransactor[IO],
+      id: Option[String]
+  ): IO[List[String]] =
     id match {
       case Some(id) =>
         for {
@@ -127,7 +131,7 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
       case None => IO(List())
     }
 
-  def handle(entry: Entry): IO[Unit] = {
+  def handle(xa: HikariTransactor[IO], entry: Entry): IO[Unit] = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
@@ -137,7 +141,7 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
     for {
       _ <- Storage.saveContent(content).transact(xa)
       _ <- Storage.saveSentiments(sentiments).transact(xa)
-      treeSymbols <- extractTreeSymbols(entry.parent_id)
+      treeSymbols <- extractTreeSymbols(xa, entry.parent_id)
       engagements <- IO.pure(
         engagementFor(entry, symbols ++ treeSymbols)
       )
@@ -152,8 +156,8 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
 }
 
 object Scraper extends Cfg {
-  def run: IO[ExitCode] =
+  def run(xa: HikariTransactor[IO]): IO[ExitCode] =
     for {
-      _ <- RedditScraper.loop(cfg.reddit.secret)
+      _ <- RedditScraper.loop(xa, cfg.reddit.secret)
     } yield (ExitCode.Success)
 }

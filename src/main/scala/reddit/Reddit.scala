@@ -17,6 +17,8 @@ import scala.concurrent.duration._
 import app.paperhands.io.Logger
 import app.paperhands.io.AddContextShift
 
+import doobie.hikari.HikariTransactor
+
 object Endpoint extends Enumeration {
   type Endpoint = Value
   val Posts, Comments = Value
@@ -37,7 +39,7 @@ trait Reddit extends AddContextShift {
 
   val logger = Logger("reddit")
 
-  def handleEntry(entry: Entry): IO[Unit]
+  def handleEntry(xa: HikariTransactor[IO], entry: Entry): IO[Unit]
 
   def loadItems(
       endpoint: Endpoint,
@@ -80,13 +82,17 @@ trait Reddit extends AddContextShift {
     items.toOption.map(_.headOption).flatten.map(_.name)
 
   def handleItems(
+      xa: HikariTransactor[IO],
       items: Either[Error, List[Entry]]
   ): IO[List[Unit]] = {
     items match {
       case Right(items) =>
-        items.traverse(entry => {
-          handleEntry(entry)
-        })
+        items
+          .map(entry => {
+            handleEntry(xa, entry)
+          })
+          .traverse(_.start)
+          .flatMap(v => v.traverse(_.join))
       case Left(e) =>
         for {
           _ <- logger.error(s"Error parsing data: $e")
@@ -95,6 +101,7 @@ trait Reddit extends AddContextShift {
   }
 
   def startLoopFor(
+      xa: HikariTransactor[IO],
       endpoint: Endpoint,
       secret: String,
       state: Option[String],
@@ -104,15 +111,15 @@ trait Reddit extends AddContextShift {
       {
         for {
           items <- loadItems(endpoint, secret, before)
-          _ <- handleItems(items)
+          _ <- handleItems(xa, items)
           _ <- IO.sleep(delay)
         } yield (getBefore(items))
       }
     }
 
-  def loop(secret: String): IO[Unit] = {
-    val commentsIO = startLoopFor(Comments, secret, None, 2.seconds)
-    val postsIO = startLoopFor(Posts, secret, None, 30.seconds)
+  def loop(xa: HikariTransactor[IO], secret: String): IO[Unit] = {
+    val commentsIO = startLoopFor(xa, Comments, secret, None, 2.seconds)
+    val postsIO = startLoopFor(xa, Posts, secret, None, 30.seconds)
 
     for {
       fc <- commentsIO.start

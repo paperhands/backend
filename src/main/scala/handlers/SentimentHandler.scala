@@ -13,7 +13,7 @@ import org.http4s.circe._
 import app.paperhands.model
 import app.paperhands.chart._
 import app.paperhands.market.Market
-import app.paperhands.storage.{ConnectionPool, Storage}
+import app.paperhands.storage.{Storage}
 
 import java.util.Calendar
 import java.time.LocalDateTime
@@ -29,6 +29,8 @@ import app.paperhands.io.Logger
 
 import doobie._
 import doobie.implicits._
+import doobie.hikari.HikariTransactor
+import app.paperhands.io.AddContextShift
 
 case class QuoteTrending(
     symbol: String,
@@ -99,13 +101,13 @@ trait Encoders {
     jsonEncoderOf[IO, QuoteDetails]
 }
 
-object Handler extends ConnectionPool with Encoders {
+object Handler extends Encoders with AddContextShift {
   val logger = Logger("sentiment-handler")
 
   def toInstant(in: LocalDateTime) =
     in.atZone(ZoneId.systemDefault).toInstant
 
-  def getQuoteTrending: IO[List[QuoteTrending]] = {
+  def getQuoteTrending(xa: HikariTransactor[IO]): IO[List[QuoteTrending]] = {
     val now = LocalDateTime.now()
     val dayAgo = now.minusDays(1)
 
@@ -125,7 +127,11 @@ object Handler extends ConnectionPool with Encoders {
     } yield (QuoteTrending.fromTrending(previous, present).take(10))
   }
 
-  def getDetails(symbol: String, period: String): IO[QuoteDetails] = {
+  def getDetails(
+      xa: HikariTransactor[IO],
+      symbol: String,
+      period: String
+  ): IO[QuoteDetails] = {
     val now = LocalDateTime.now()
     val dayAgo = now.minusDays(1)
 
@@ -153,10 +159,10 @@ object Handler extends ConnectionPool with Encoders {
     } yield (QuoteDetails.fromTimeSeries(mentions, engagements, sentiments))
   }
 
-  val paperhandsService = HttpRoutes.of[IO] {
+  def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "trending" =>
-      Ok(getQuoteTrending)
+      Ok(getQuoteTrending(xa))
     case GET -> Root / "quote" / "details" / symbol / period =>
-      Ok(getDetails(symbol.toUpperCase, period))
+      Ok(getDetails(xa, symbol.toUpperCase, period))
   }
 }

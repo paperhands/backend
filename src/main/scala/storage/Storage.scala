@@ -8,6 +8,7 @@ import app.paperhands.model
 
 import doobie._
 import doobie.implicits._
+import doobie.hikari._
 
 import cats._
 import cats.effect._
@@ -16,12 +17,21 @@ import cats.implicits._
 import scala.concurrent._
 
 trait ConnectionPool extends Cfg with AddContextShift {
-  val xa = Transactor.fromDriverManager[IO](
-    "org.postgresql.Driver",
-    s"jdbc:postgresql:${cfg.repository.database}",
-    cfg.repository.user,
-    cfg.repository.password
-  )
+  val transactor: Resource[IO, HikariTransactor[IO]] =
+    for {
+      ce <- ExecutionContexts.fixedThreadPool[IO](
+        cfg.repository.max_conns
+      ) // our connect EC
+      be <- Blocker[IO] // our blocking EC
+      xa <- HikariTransactor.newHikariTransactor[IO](
+        "org.postgresql.Driver",
+        s"jdbc:postgresql:${cfg.repository.database}",
+        cfg.repository.user,
+        cfg.repository.password,
+        ce, // await connection here
+        be // execute JDBC operations here
+      )
+    } yield xa
 }
 
 object Storage extends model.DoobieMetas {

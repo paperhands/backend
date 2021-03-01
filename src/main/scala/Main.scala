@@ -7,18 +7,21 @@ import app.paperhands.scraper.Scraper
 import app.paperhands.server.Server
 import app.paperhands.flyway.MyFlyway
 import app.paperhands.io.Logger
+import app.paperhands.storage.ConnectionPool
 
-object Main extends IOApp {
+object Main extends IOApp with ConnectionPool {
   val logger = Logger("main")
 
   override def run(args: List[String]): IO[ExitCode] =
-    args.headOption match {
-      case Some("scrape")                    => Scraper.run
-      case Some("server")                    => Server.run
-      case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
-      case _ =>
-        logger
-          .error(s"""Unknown command "${args.mkString(" ")}" """)
-          .flatMap(_ => IO.pure(ExitCode.Error))
+    transactor.use { xa =>
+      args.headOption match {
+        case Some("scrape")                    => Scraper.run(xa)
+        case Some("server")                    => Server.run(xa)
+        case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
+        case _ =>
+          logger
+            .error(s"""Unknown command "${args.mkString(" ")}" """)
+            .flatMap(_ => IO.pure(ExitCode.Error))
+      }
     }
 }

@@ -37,6 +37,7 @@ lazy val root = project
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
       "org.tpolecat" %% "doobie-core"      % "0.10.0",
+      "org.tpolecat" %% "doobie-hikari"    % "0.10.0",
       "org.tpolecat" %% "doobie-postgres"  % "0.10.0",
 
        "com.github.julien-truffaut" %% "monocle-core"  % "3.0.0-M3",
