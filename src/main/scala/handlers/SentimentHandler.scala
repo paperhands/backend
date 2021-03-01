@@ -135,15 +135,21 @@ object Handler extends ConnectionPool with Encoders {
     val bucket = "15 minutes"
 
     for {
-      mentions <- Storage
+      fm <- Storage
         .getMentionTimeseries(symbol, bucket, start, end)
         .transact(xa)
-      engagements <- Storage
+        .start
+      fe <- Storage
         .getEngagementTimeseries(symbol, bucket, start, end)
         .transact(xa)
-      sentiments <- Storage
+        .start
+      fs <- Storage
         .getSentimentTimeseries(symbol, bucket, start, end)
         .transact(xa)
+        .start
+      mentions <- fm.join
+      engagements <- fe.join
+      sentiments <- fs.join
     } yield (QuoteDetails.fromTimeSeries(mentions, engagements, sentiments))
   }
 
