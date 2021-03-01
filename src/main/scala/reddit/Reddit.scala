@@ -104,9 +104,8 @@ trait Reddit extends AddContextShift {
       {
         for {
           items <- loadItems(endpoint, secret, before)
-          fibre <- handleItems(items).start
+          _ <- handleItems(items)
           _ <- IO.sleep(delay)
-          _ <- fibre.join
         } yield (getBefore(items))
       }
     }
