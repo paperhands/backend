@@ -111,7 +111,7 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
       symbols: List[String]
   ): List[model.Engagement] =
     model.Engagement.fromSymbols(
-      symbols,
+      symbols.distinct.filter(!isIgnored(_)),
       entry.name
     )
 
@@ -139,7 +139,7 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
       _ <- Storage.saveSentiments(sentiments).transact(xa)
       treeSymbols <- extractTreeSymbols(entry.parent_id)
       engagements <- IO.pure(
-        engagementFor(entry, (symbols ++ treeSymbols).distinct)
+        engagementFor(entry, symbols ++ treeSymbols)
       )
       _ <- logger.info(
         s"${entry.author}: ${entry.body}\nsenti: $sentiments\nenga: $engagements"
