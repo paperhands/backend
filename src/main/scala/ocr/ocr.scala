@@ -19,7 +19,7 @@ object OCR extends AddContextShift {
     Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 
   val logger = Logger("ocr")
-  val dpi = "70"
+  val dpi = "72"
 
   def processFile(input: String): IO[String] = {
     IO(
