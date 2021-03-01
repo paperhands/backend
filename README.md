@@ -1,8 +1,15 @@
-## sbt project compiled with Scala 3
+## Paperhands app backend codebase
 
 ### Usage
 
-This is a normal sbt project. You can compile code with `sbt compile`, run it with `sbt run`, and `sbt console` will start a Scala 3 REPL.
+* run migrations `make flyway-migrate`
+* run server `make run-server`
+* run scraper `make run-scrape`
+* dev auto restart:
+** `make sbt`
+** `~reStart server`
+** or `~reStart scrape`
 
-For more information on the sbt-dotty plugin, see the
-[dotty-example-project](https://github.com/lampepfl/dotty-example-project/blob/master/README.md).
+### Dependencies
+
+You need to have `tesseract` OCR CLI installed and available on your `$PATH`
