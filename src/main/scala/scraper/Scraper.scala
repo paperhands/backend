@@ -104,7 +104,8 @@ object RedditScraper extends Reddit with Cfg with Market {
     model.Sentiment.fromSymbols(
       symbols,
       sentiment,
-      entry.name
+      entry.name,
+      entry.created_time
     )
 
   def engagementFor(
@@ -113,7 +114,8 @@ object RedditScraper extends Reddit with Cfg with Market {
   ): List[model.Engagement] =
     model.Engagement.fromSymbols(
       symbols.distinct.filter(!isIgnored(_)),
-      entry.name
+      entry.name,
+      entry.created_time
     )
 
   def symbolsFromTree(tree: List[model.ContentMeta]): List[String] =

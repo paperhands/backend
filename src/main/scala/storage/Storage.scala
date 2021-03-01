@@ -38,8 +38,8 @@ object Storage extends model.DoobieMetas {
   def saveSentiments(sents: List[model.Sentiment]): ConnectionIO[Int] = {
     val sql = """
       INSERT INTO
-      sentiments(created_time, symbol, origin_id, score, confidence)
-      VALUES(now(), ?, ?, ?, -1)
+      sentiments(symbol, origin_id, score, created_time, confidence)
+      VALUES(?, ?, ?, ?, -1)
     """
     Update[model.Sentiment](sql).updateMany(sents)
   }
@@ -48,7 +48,7 @@ object Storage extends model.DoobieMetas {
     val sql = """
     INSERT INTO
     engagements(symbol, origin_id, created_time)
-    VALUES(?, ?, now())
+    VALUES(?, ?, ?)
     """
     Update[model.Engagement](sql).updateMany(sents)
   }

@@ -81,26 +81,33 @@ case class Bear() extends SentimentValue {
   def getSentiment: Int = 2
 }
 
-case class Sentiment(symbol: String, origin_id: String, sentiment: Int)
+case class Sentiment(
+    symbol: String,
+    origin_id: String,
+    sentiment: Int,
+    created_time: Instant
+)
 
 object Sentiment {
   def fromSymbols(
       symbols: List[String],
       sentiment: SentimentValue,
-      origin_id: String
+      origin_id: String,
+      created_time: Instant
   ): List[Sentiment] = {
-    symbols.map(Sentiment(_, origin_id, sentiment.getSentiment))
+    symbols.map(Sentiment(_, origin_id, sentiment.getSentiment, created_time))
   }
 }
 
-case class Engagement(symbol: String, origin_id: String)
+case class Engagement(symbol: String, origin_id: String, created_time: Instant)
 
 object Engagement {
   def fromSymbols(
       symbols: List[String],
-      origin_id: String
+      origin_id: String,
+      created_time: Instant
   ): List[Engagement] = {
-    symbols.map(Engagement(_, origin_id))
+    symbols.map(Engagement(_, origin_id, created_time))
   }
 }
 
