@@ -122,7 +122,7 @@ object Handler extends ConnectionPool with Encoders {
       present <- Storage
         .getTrending(start, end, 30)
         .transact(xa)
-    } yield (QuoteTrending.fromTrending(previous, present))
+    } yield (QuoteTrending.fromTrending(previous, present).take(10))
   }
 
   def getDetails(symbol: String, period: String): IO[QuoteDetails] = {
