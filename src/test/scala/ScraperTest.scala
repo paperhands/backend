@@ -43,34 +43,14 @@ object ScraperTestSuite extends SimpleTestSuite {
 
   test("exception symbol extraction") {
     assertEquals(List(), RedditScraper.getSymbols("no symbols in here"))
-    assertEquals(
-      RedditScraper.getSymbols("i bought some GME today"),
-      List("GME")
-    )
-    assertEquals(
-      RedditScraper.getSymbols("i bought some $GME today"),
-      List("GME")
-    )
-    assertEquals(
-      RedditScraper.getSymbols("i bought some $gme today"),
-      List("GME")
-    )
-    assertEquals(
-      RedditScraper.getSymbols("i bought some gme today"),
-      List("GME")
-    )
-    assertEquals(
-      RedditScraper.getSymbols("GME"),
-      List("GME")
-    )
-    assertEquals(
-      RedditScraper.getSymbols("GME to the moon"),
-      List("GME")
-    )
-    assertEquals(
-      RedditScraper.getSymbols("lets go GME"),
-      List("GME")
-    )
+    assertEquals(RedditScraper.getSymbols("i bought GME today"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("did we, GME?"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("some $GME today"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("some $gme today"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("i  gme today"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("GME"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("GME to the moon"), List("GME"))
+    assertEquals(RedditScraper.getSymbols("lets go GME"), List("GME"))
   }
 
   test("ignored symbol extraction") {
@@ -82,7 +62,17 @@ object ScraperTestSuite extends SimpleTestSuite {
     assertEquals(RedditScraper.getSymbols("this is $ZQK time"), List("ZQK"))
     assertEquals(RedditScraper.getSymbols("this is $zqk time"), List("ZQK"))
     assertEquals(RedditScraper.getSymbols("this is ZQK time"), List("ZQK"))
+    assertEquals(RedditScraper.getSymbols("this is ZQK. time"), List("ZQK"))
+    assertEquals(RedditScraper.getSymbols("this is,ZQK."), List("ZQK"))
     assertEquals(RedditScraper.getSymbols("this is zqk time"), List())
+  }
+
+  test("no symbol extraction") {
+    assertEquals(RedditScraper.getSymbols("this is zqkishvery time"), List())
+    assertEquals(RedditScraper.getSymbols("this is AMCOE time"), List())
+    assertEquals(RedditScraper.getSymbols("this is GMEIFY time"), List())
+    assertEquals(RedditScraper.getSymbols("this is BABABA time"), List())
+    assertEquals(RedditScraper.getSymbols("this is VEBA time"), List())
   }
 
   test("sentiment matching") {
