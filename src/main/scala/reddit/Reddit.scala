@@ -87,12 +87,9 @@ trait Reddit extends AddContextShift {
   ): IO[List[Unit]] = {
     items match {
       case Right(items) =>
-        items
-          .map(entry => {
-            handleEntry(xa, entry)
-          })
-          .traverse(_.start)
-          .flatMap(v => v.traverse(_.join))
+        items.traverse(entry => {
+          handleEntry(xa, entry)
+        })
       case Left(e) =>
         for {
           _ <- logger.error(s"Error parsing data: $e")
