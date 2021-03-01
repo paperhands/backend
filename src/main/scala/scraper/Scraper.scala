@@ -48,18 +48,10 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
   def handleEntry(e: Entry): IO[Unit] = {
     val urls = e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
-    if (urls.length > 0) {
-
-      for {
-        _ <- logger.info(
-          s"starting new thread to process ${urls.length} urls"
-        )
-        out <- processURLs(urls)
-        _ <- handle(e.focus(_.body).modify(v => s"$v$out"))
-      } yield ()
-    } else {
-      handle(e)
-    }
+    for {
+      out <- processURLs(urls)
+      _ <- handle(e.focus(_.body).modify(v => s"$v$out"))
+    } yield ()
   }
 
   def sentTestFn(body: String, coll: List[String]): Boolean =
