@@ -45,14 +45,14 @@ object RedditScraper extends Reddit with Cfg with Market with ConnectionPool {
       .toList
       .filter(isImageURL)
 
-  def handleEntry(e: Entry): IO[Unit] = {
-    val urls = e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
+  def collectAllImageUrls(e: Entry): List[String] =
+    e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
+  def handleEntry(e: Entry): IO[Unit] =
     for {
-      out <- processURLs(urls)
+      out <- processURLs(collectAllImageUrls(e))
       _ <- handle(e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
-  }
 
   def sentTestFn(body: String, coll: List[String]): Boolean =
     coll.find(s => body.contains(s)).isDefined
