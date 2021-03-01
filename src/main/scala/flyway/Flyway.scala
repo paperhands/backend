@@ -14,7 +14,7 @@ object MyFlyway extends Cfg {
   def flyway: Flyway =
     Flyway.configure
       .dataSource(
-        s"jdbc:postgresql:${cfg.repository.database}",
+        s"jdbc:postgresql://${cfg.repository.host}:${cfg.repository.port}/${cfg.repository.database}",
         cfg.repository.user,
         cfg.repository.password
       )
