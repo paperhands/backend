@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS sentiments (
+CREATE TABLE sentiments (
    created_time TIMESTAMPTZ       NOT NULL,
    symbol       TEXT              NOT NULL,
    score        INTEGER           NOT NULL,
@@ -6,4 +6,4 @@ CREATE TABLE IF NOT EXISTS sentiments (
    origin_id    TEXT              NOT NULL
  );
 
-SELECT create_hypertable('sentiments', 'created_time', if_not_exists => TRUE);
+SELECT create_hypertable('sentiments', 'created_time');

@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS content (
+CREATE TABLE content (
        id           TEXT PRIMARY KEY,
        created_time TIMESTAMP NOT NULL DEFAULT now(),
        origin_time  TIMESTAMP,
