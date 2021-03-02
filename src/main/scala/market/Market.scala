@@ -13,10 +13,13 @@ trait Market {
 
 object Market {
   val files = List("custom.txt", "nasdaqlisted.txt", "otherlisted.txt")
-  val cleanRe = "\\s*-.*".r
+  val cleanRe = "(?i)(?<=(inc|corp)\\.).*".r
+  val afterCleanupRe = "(?i) common stock".r
 
   def cleanupDescription(desc: String) =
-    cleanRe.replaceAllIn(desc, "")
+    List(cleanRe, afterCleanupRe).foldLeft(desc) { case (desc, re) =>
+      re.replaceAllIn(desc, "")
+    }
 
   def load: List[Ticket] = {
     files
