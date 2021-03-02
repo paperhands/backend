@@ -97,6 +97,42 @@ object Storage extends model.DoobieMetas {
       .query[model.Trending]
       .to[List]
 
+  def getPopularityForInterval(
+      symbol: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[model.Popularity] =
+    sql"""
+      SELECT
+        $symbol as symbol,
+        (
+          SELECT
+            COUNT(DISTINCT c.author) AS value
+          FROM sentiments AS s
+          INNER JOIN content AS c ON s.origin_id = c.id
+          WHERE
+           s.symbol = $symbol
+           and s.created_time > $start
+           and s.created_time < $end
+          ORDER BY
+            value DESC
+        ) as mentions,
+       (
+         SELECT
+           COUNT(DISTINCT c.author) AS value
+         FROM engagements AS e
+         INNER JOIN content AS c ON e.origin_id = c.id
+         WHERE
+           e.symbol = $symbol
+           and e.created_time > $start
+           and e.created_time < $end
+         ORDER BY
+           value DESC
+       ) as engagements
+    """
+      .query[model.Popularity]
+      .unique
+
   def getEngagementTimeseries(
       symbol: String,
       bucket: String,

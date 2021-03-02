@@ -12,6 +12,7 @@ import org.http4s.circe._
 
 import app.paperhands.model
 import app.paperhands.chart._
+import app.paperhands.popularity.{Popularity, PopularityResponse}
 import app.paperhands.market.Market
 import app.paperhands.storage.{Storage}
 import app.paperhands.io.AddContextShift
@@ -80,21 +81,24 @@ case class QuoteDetails(
     mentions: ChartResponse,
     engagements: ChartResponse,
     sentiments: ChartResponse,
-    price: ChartResponse
+    price: ChartResponse,
+    popularity: PopularityResponse
 )
 
 object QuoteDetails {
-  def fromTimeSeries(
+  def fromQueryResults(
       mentions: List[model.TimeSeries],
       engagements: List[model.TimeSeries],
       sentiments: List[model.TimeSeries],
-      price: List[model.TimeSeries]
+      price: List[model.TimeSeries],
+      popularity: model.Popularity
   ) =
     QuoteDetails(
       Chart.fromTimeSeries(mentions),
       Chart.fromTimeSeries(engagements),
       Chart.fromTimeSeries(sentiments),
-      Chart.fromTimeSeries(price)
+      Chart.fromTimeSeries(price),
+      Popularity.fromQuery(popularity)
     )
 }
 
@@ -154,9 +158,12 @@ object Handler extends Encoders with AddContextShift {
       sentiments <- Storage
         .getSentimentTimeseries(symbol, bucket, start, end)
         .transact(xa)
+      popularity <- Storage
+        .getPopularityForInterval(symbol, start, end)
+        .transact(xa)
       price <- Vantage.priceData(symbol, period)
     } yield (QuoteDetails
-      .fromTimeSeries(mentions, engagements, sentiments, price))
+      .fromQueryResults(mentions, engagements, sentiments, price, popularity))
   }
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {

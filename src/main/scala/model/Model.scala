@@ -111,6 +111,8 @@ object Engagement {
   }
 }
 
+object Popularity {}
+
 case class Trending(
     symbol: String,
     popularity: Float
@@ -120,4 +122,10 @@ case class TimeSeries(
     symbol: String,
     value: Int,
     time: Instant
+)
+
+case class Popularity(
+    symbol: String,
+    mentions: Int,
+    engagements: Int
 )
