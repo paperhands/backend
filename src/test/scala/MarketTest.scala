@@ -44,5 +44,9 @@ object MarketTestSuite extends SimpleTestSuite {
       "Grocery Outlet Holding Corp. - Common Stock",
       "Grocery Outlet Holding Corp."
     )
+    t(
+      "UWM Holdings Corporation Class A Common Stock",
+      "UWM Holdings Corporation"
+    )
   }
 }
