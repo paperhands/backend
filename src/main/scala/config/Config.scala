@@ -1,10 +1,16 @@
 package app.paperhands.config
 
 import scala.io.Source
-import cats.syntax.either._
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.yaml
+
+import cats._
+import cats.effect._
+import cats.implicits._
+import cats.syntax._
+
+import app.paperhands.io.Logger
 
 case class Config(
     reddit: Reddit,
@@ -46,25 +52,22 @@ case class Market(
 )
 
 trait Cfg {
-  val cfg = Config.cfg
+  val cfg: Config = Config.cfg
 }
 
 object Config {
-  def load: Config = {
-    val env = sys.env.getOrElse("PAPERHANDS_ENV", "development")
-    val path = s"config/$env.yml"
+  val logger = Logger("main")
 
-    val json = yaml.parser.parse(
-      Source.fromResource(path).mkString
-    )
-
-    val config = json
-      .leftMap(err => err: Error)
+  def load: IO[Config] =
+    for {
+      env <- IO(sys.env.getOrElse("PAPERHANDS_ENV", "development"))
+      path <- IO.pure(s"config/$env.yml")
+      _ <- logger.info(s"loading config from $path")
+      ymlString <- IO(Source.fromResource(path).mkString)
+      yml <- IO.pure(yaml.parser.parse(ymlString))
+    } yield (yml
       .flatMap(_.as[Config])
-      .valueOr(throw _)
+      .valueOr(throw _))
 
-    config
-  }
-
-  val cfg = load
+  val cfg = load.unsafeRunSync
 }
