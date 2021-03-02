@@ -13,10 +13,21 @@ import app.paperhands.config.Cfg
 import app.paperhands.io.{Logger, HttpBackend}
 
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 object TimeParsing {
-  def toInstant(in: String) = {
-    Instant.now()
+  def toInstant(in: String, zone: String) = {
+    // 2021-03-01 20:00:00
+    LocalDateTime
+      .parse(
+        in,
+        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US)
+      )
+      .atZone(ZoneId.of(zone))
+      .toInstant
   }
 }
 
@@ -26,7 +37,11 @@ case class VantageResponse(
 ) {
   def toTimeSeries(symbol: String): List[model.TimeSeries] = {
     timeSeries.map { case (k, v) =>
-      model.TimeSeries(symbol, v.open.toInt, TimeParsing.toInstant(k))
+      model.TimeSeries(
+        symbol,
+        v.open.toInt,
+        TimeParsing.toInstant(k, meta.timeZone)
+      )
     }.toList
   }
 
