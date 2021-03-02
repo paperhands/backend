@@ -15,7 +15,7 @@ import cats.implicits._
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import app.paperhands.io.{Logger, AddContextShift, HttpBackend}
+import app.paperhands.io.{Logger, HttpBackend}
 
 import doobie.hikari.HikariTransactor
 
@@ -32,7 +32,7 @@ case class LoopState(
     index: Int
 )
 
-trait Reddit extends AddContextShift with HttpBackend {
+trait Reddit extends HttpBackend {
   implicit val timer = IO.timer(ExecutionContext.global)
 
   val logger = Logger("reddit")

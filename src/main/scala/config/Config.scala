@@ -10,6 +10,7 @@ case class Config(
     reddit: Reddit,
     repository: Repository,
     http: Http,
+    vantage: Vantage,
     sentiment: Sentiment,
     market: Market
 )
@@ -30,6 +31,9 @@ case class Repository(
 case class Http(
     port: Int,
     host: String
+)
+case class Vantage(
+    api_key: String
 )
 case class Sentiment(
     bull: List[String],

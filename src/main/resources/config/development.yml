@@ -6,6 +6,9 @@ http:
   port: 8888
   host: localhost
 
+vantage:
+  api_key: GUS0Y6G5HRQE4MMN
+
 repository:
   adapter: pg
   user: root
