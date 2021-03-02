@@ -13,11 +13,9 @@ import scala.concurrent._
 
 import app.paperhands.io.Logger
 import app.paperhands.io.AddContextShift
+import app.paperhands.http.HttpBackend
 
-object OCR extends AddContextShift {
-  val backend =
-    Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
-
+object OCR extends AddContextShift with HttpBackend {
   val logger = Logger("ocr")
   val dpi = "72"
 

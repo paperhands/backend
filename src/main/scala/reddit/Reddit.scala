@@ -4,6 +4,7 @@ import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.model.StatusCodes
 import java.util.{Calendar, Date}
 import java.time.Instant
+
 import sttp.client3._
 import sttp.client3.http4s._
 
@@ -16,6 +17,7 @@ import scala.concurrent.duration._
 
 import app.paperhands.io.Logger
 import app.paperhands.io.AddContextShift
+import app.paperhands.http.HttpBackend
 
 import doobie.hikari.HikariTransactor
 
@@ -32,10 +34,8 @@ case class LoopState(
     index: Int
 )
 
-trait Reddit extends AddContextShift {
+trait Reddit extends AddContextShift with HttpBackend {
   implicit val timer = IO.timer(ExecutionContext.global)
-  val backend =
-    Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 
   val logger = Logger("reddit")
 
