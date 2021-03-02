@@ -7,6 +7,9 @@ object MarketTestSuite extends SimpleTestSuite {
       Market.cleanupDescription(origin),
       expectation
     )
+  test("load") {
+    assert(Market.market.length >= 9949)
+  }
 
   test("cleanupDescription") {
     t(

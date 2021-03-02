@@ -85,9 +85,7 @@ trait Reddit extends HttpBackend {
   ): IO[List[Unit]] = {
     items match {
       case Right(items) =>
-        items.traverse(entry => {
-          handleEntry(xa, entry)
-        })
+        items.traverse(entry => handleEntry(xa, entry))
       case Left(e) =>
         for {
           _ <- logger.error(s"Error parsing data: $e")
