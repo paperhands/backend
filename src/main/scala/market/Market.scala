@@ -13,6 +13,10 @@ trait Market {
 
 object Market {
   val files = List("custom.txt", "nasdaqlisted.txt", "otherlisted.txt")
+  val cleanRe = "\\s*-.*".r
+
+  def cleanupDescription(desc: String) =
+    cleanRe.replaceAllIn(desc, "")
 
   def load: List[Ticket] = {
     files
@@ -21,6 +25,6 @@ object Market {
       .map(_.split("\\|"))
       .filter(_.length >= 2)
       .filter(_(0) != "Symbol")
-      .map(l => Ticket(l(0), l(1)))
+      .map(l => Ticket(l(0), cleanupDescription(l(1))))
   }
 }
