@@ -8,7 +8,7 @@ case class Ticket(
 )
 
 trait Market {
-  val market = Market.load
+  val market = Market.market
 }
 
 object Market {
@@ -30,4 +30,6 @@ object Market {
       .filter(_(0) != "Symbol")
       .map(l => Ticket(l(0), cleanupDescription(l(1))))
   }
+
+  val market = load
 }

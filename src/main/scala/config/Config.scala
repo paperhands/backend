@@ -46,7 +46,7 @@ case class Market(
 )
 
 trait Cfg {
-  val cfg = Config.load
+  val cfg = Config.cfg
 }
 
 object Config {
@@ -65,4 +65,6 @@ object Config {
 
     config
   }
+
+  val cfg = load
 }

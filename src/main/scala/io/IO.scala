@@ -16,7 +16,11 @@ import scala.concurrent._
 import com.typesafe.scalalogging
 
 trait AddContextShift {
-  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+  implicit val cs: ContextShift[IO] = AddContextShift.cs
+}
+
+object AddContextShift {
+  val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 }
 
 case class LoggerWrapper(logger: scalalogging.Logger) {

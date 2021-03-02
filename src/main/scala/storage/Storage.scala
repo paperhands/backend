@@ -16,7 +16,11 @@ import cats.implicits._
 
 import scala.concurrent._
 
-trait ConnectionPool extends Cfg with AddContextShift {
+trait ConnectionPool {
+  val transactor = ConnectionPool.transactor
+}
+
+object ConnectionPool extends Cfg with AddContextShift {
   val transactor: Resource[IO, HikariTransactor[IO]] =
     for {
       ce <- ExecutionContexts.fixedThreadPool[IO](
