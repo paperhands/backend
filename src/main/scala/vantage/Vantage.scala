@@ -36,15 +36,17 @@ case class VantageResponse(
     timeSeries: Map[String, VantageData]
 ) {
   def toTimeSeries(symbol: String): List[model.TimeSeries] = {
-    timeSeries.map { case (k, v) =>
-      model.TimeSeries(
-        symbol,
-        v.open.toInt,
-        TimeParsing.toInstant(k, meta.timeZone)
-      )
-    }.toList
+    timeSeries
+      .map { case (k, v) =>
+        model.TimeSeries(
+          symbol,
+          v.open.toInt,
+          TimeParsing.toInstant(k, meta.timeZone)
+        )
+      }
+      .toList
+      .reverse
   }
-
 }
 
 case class VantageMeta(

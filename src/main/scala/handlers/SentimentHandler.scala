@@ -14,6 +14,8 @@ import app.paperhands.model
 import app.paperhands.chart._
 import app.paperhands.market.Market
 import app.paperhands.storage.{Storage}
+import app.paperhands.io.AddContextShift
+import app.paperhands.vantage.Vantage
 
 import java.util.Calendar
 import java.time.LocalDateTime
@@ -30,7 +32,6 @@ import app.paperhands.io.Logger
 import doobie._
 import doobie.implicits._
 import doobie.hikari.HikariTransactor
-import app.paperhands.io.AddContextShift
 
 case class QuoteTrending(
     symbol: String,
@@ -78,19 +79,22 @@ object QuoteTrending extends Market {
 case class QuoteDetails(
     mentions: ChartResponse,
     engagements: ChartResponse,
-    sentiments: ChartResponse
+    sentiments: ChartResponse,
+    price: ChartResponse
 )
 
 object QuoteDetails {
   def fromTimeSeries(
       mentions: List[model.TimeSeries],
       engagements: List[model.TimeSeries],
-      sentiments: List[model.TimeSeries]
+      sentiments: List[model.TimeSeries],
+      price: List[model.TimeSeries]
   ) =
     QuoteDetails(
       Chart.fromTimeSeries(mentions),
       Chart.fromTimeSeries(engagements),
-      Chart.fromTimeSeries(sentiments)
+      Chart.fromTimeSeries(sentiments),
+      Chart.fromTimeSeries(price)
     )
 }
 
@@ -150,7 +154,9 @@ object Handler extends Encoders with AddContextShift {
       sentiments <- Storage
         .getSentimentTimeseries(symbol, bucket, start, end)
         .transact(xa)
-    } yield (QuoteDetails.fromTimeSeries(mentions, engagements, sentiments))
+      price <- Vantage.priceData(symbol, period)
+    } yield (QuoteDetails
+      .fromTimeSeries(mentions, engagements, sentiments, price))
   }
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
