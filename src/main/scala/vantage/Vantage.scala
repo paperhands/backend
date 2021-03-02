@@ -2,6 +2,7 @@ package app.paperhands.vantage
 
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.client3._
+import sttp.model._
 
 import cats._
 import cats.effect._
@@ -11,13 +12,77 @@ import app.paperhands.model
 import app.paperhands.config.Cfg
 import app.paperhands.io.{Logger, HttpBackend}
 
-case class VantageResponse() {
-  def toTimeSeries: List[model.TimeSeries] =
-    List()
+import java.time.Instant
+
+object TimeParsing {
+  def toInstant(in: String) = {
+    Instant.now()
+  }
 }
 
-object Vantage extends HttpBackend with Cfg {
-  val logger = Logger("bloomberg-api")
+case class VantageResponse(
+    meta: VantageMeta,
+    timeSeries: Map[String, VantageData]
+) {
+  def toTimeSeries(symbol: String): List[model.TimeSeries] = {
+    timeSeries.map { case (k, v) =>
+      model.TimeSeries(symbol, v.open.toInt, TimeParsing.toInstant(k))
+    }.toList
+  }
+
+}
+
+case class VantageMeta(
+    information: String,
+    symbol: String,
+    lastRefreshed: String,
+    interval: String,
+    outputSize: String,
+    timeZone: String
+)
+case class VantageData(
+    open: Float,
+    high: Float,
+    low: Float,
+    close: Float,
+    volume: Float
+)
+
+trait Decoders {
+  implicit val decodeVantageMeta: Decoder[VantageMeta] =
+    Decoder.forProduct6(
+      "1. Information",
+      "2. Symbol",
+      "3. Last Refreshed",
+      "4. Interval",
+      "5. Output Size",
+      "6. Time Zone"
+    )(
+      VantageMeta.apply
+    )
+
+  implicit val decodeVantageData: Decoder[VantageData] =
+    Decoder.forProduct5(
+      "1. open",
+      "2. high",
+      "3. low",
+      "4. close",
+      "5. volume"
+    )(
+      VantageData.apply
+    )
+
+  implicit val decodeVantageResponse: Decoder[VantageResponse] =
+    Decoder.forProduct2(
+      "Meta Data",
+      "Time Series (15min)"
+    )(
+      VantageResponse.apply
+    )
+}
+
+object Vantage extends HttpBackend with Cfg with Decoders {
+  val logger = Logger("vantage-api")
 
   val ua = "Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0"
   val apiKey = cfg.vantage.api_key
@@ -28,38 +93,41 @@ object Vantage extends HttpBackend with Cfg {
       case _      => "POOP"
     }
 
-  def constructRequest(
+  def constructUri(
       symbol: String,
       timeFrame: String
-  ): IO[Request[Either[String, String], Any with Any]] =
-    IO.pure(
-      basicRequest
-        .header("User-Agent", ua)
-        .contentType("application/json")
-        .get(
-          uri"https://www.alphavantage.co/query?function=${mapTimeFrame(timeFrame)}&symbol=$symbol&interval=5min&apikey=$apiKey"
-        )
-    )
+  ) =
+    uri"https://www.alphavantage.co/query?function=${mapTimeFrame(timeFrame)}&symbol=$symbol&interval=15min&apikey=$apiKey&datatype=json&outputsize=full"
 
-  def decodeResponseBody(body: String): IO[List[model.TimeSeries]] =
-    decode[VantageResponse](body).map(_.toTimeSeries) match {
-      case Right(l) => IO.pure(l)
+  def constructRequest(
+      uri: Uri
+  ) =
+    basicRequest
+      .header("User-Agent", ua)
+      .contentType("application/json")
+      .get(uri)
+
+  def decodeResponseBody(uri: Uri, body: String): IO[VantageResponse] =
+    decode[VantageResponse](body) match {
+      case Right(r) => IO.pure(r)
       case Left(e) => {
         for {
           _ <- logger.error(
-            s"could not parse bloomberg response: $e, body:\n$body"
+            s"could not parse vantage response: $e from $uri, body:\n$body"
           )
-        } yield (List())
+        } yield (VantageResponse(VantageMeta("", "", "", "", "", ""), Map()))
       }
     }
 
   def priceData(symbol: String, period: String): IO[List[model.TimeSeries]] = {
+    val uri = constructUri(symbol, period)
+    val request = constructRequest(uri)
+
     backend.use { backend =>
       for {
-        request <- constructRequest(symbol, period)
         response <- request.send(backend)
-        ts <- decodeResponseBody(response.body.getOrElse(""))
-      } yield (ts)
+        ts <- decodeResponseBody(uri, response.body.getOrElse(""))
+      } yield (ts.toTimeSeries(symbol))
     }
   }
 
