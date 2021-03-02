@@ -4,6 +4,13 @@ import cats._
 import cats.effect._
 import cats.implicits._
 
+import cats._
+import cats.effect._
+import cats.implicits._
+
+import sttp.client3._
+import sttp.client3.http4s._
+
 import scala.concurrent._
 
 import com.typesafe.scalalogging
@@ -28,4 +35,9 @@ case class LoggerWrapper(logger: scalalogging.Logger) {
 object Logger {
   def apply(name: String) =
     LoggerWrapper(scalalogging.Logger(name))
+}
+
+trait HttpBackend extends AddContextShift {
+  val backend =
+    Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
 }

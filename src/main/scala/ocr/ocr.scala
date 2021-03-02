@@ -11,9 +11,7 @@ import cats.implicits._
 
 import scala.concurrent._
 
-import app.paperhands.io.Logger
-import app.paperhands.io.AddContextShift
-import app.paperhands.http.HttpBackend
+import app.paperhands.io.{Logger, AddContextShift, HttpBackend}
 
 object OCR extends AddContextShift with HttpBackend {
   val logger = Logger("ocr")

@@ -15,9 +15,7 @@ import cats.implicits._
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import app.paperhands.io.Logger
-import app.paperhands.io.AddContextShift
-import app.paperhands.http.HttpBackend
+import app.paperhands.io.{Logger, AddContextShift, HttpBackend}
 
 import doobie.hikari.HikariTransactor
 
