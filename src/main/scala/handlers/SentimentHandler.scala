@@ -141,21 +141,15 @@ object Handler extends Encoders with AddContextShift {
     val bucket = "15 minutes"
 
     for {
-      fm <- Storage
+      mentions <- Storage
         .getMentionTimeseries(symbol, bucket, start, end)
         .transact(xa)
-        .start
-      fe <- Storage
+      engagements <- Storage
         .getEngagementTimeseries(symbol, bucket, start, end)
         .transact(xa)
-        .start
-      fs <- Storage
+      sentiments <- Storage
         .getSentimentTimeseries(symbol, bucket, start, end)
         .transact(xa)
-        .start
-      mentions <- fm.join
-      engagements <- fe.join
-      sentiments <- fs.join
     } yield (QuoteDetails.fromTimeSeries(mentions, engagements, sentiments))
   }
 
