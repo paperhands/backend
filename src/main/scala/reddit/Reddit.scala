@@ -89,7 +89,8 @@ trait Reddit extends HttpBackend {
   ): IO[List[Unit]] = {
     items match {
       case Right(items) =>
-        items.traverse(entry => handleEntry(xa, entry))
+        logger.info(s"running handleEntry on ${items.length} items") *>
+          items.traverse(entry => handleEntry(xa, entry))
       case Left(_) => IO.pure(List())
     }
   }
