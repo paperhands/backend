@@ -141,10 +141,9 @@ object Vantage extends HttpBackend with Cfg with Decoders {
     val request = constructRequest(uri)
 
     backend.use { backend =>
-      for {
-        response <- request.send(backend)
-        ts <- decodeResponseBody(uri, response.body.getOrElse(""))
-      } yield (ts.toTimeSeries(symbol))
+      request.send(backend).map(_.body.getOrElse("")) >>= ((v: String) =>
+        decodeResponseBody(uri, v).map(_.toTimeSeries(symbol))
+      )
     }
   }
 
