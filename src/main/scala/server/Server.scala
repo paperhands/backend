@@ -27,10 +27,11 @@ object Server extends Cfg with AddContextShift {
     .bindHttp(cfg.http.port, cfg.http.host)
     .withHttpApp(httpApp(xa))
 
+  def start(xa: HikariTransactor[IO]) =
+    serverBuilder(xa).resource.use(_ => IO.never)
+
   def run(xa: HikariTransactor[IO]): IO[ExitCode] =
-    for {
-      fibre <-
-        serverBuilder(xa).resource.use(_ => IO.never).start
-      _ <- fibre.join
-    } yield (ExitCode.Success)
+    start(xa) *> IO.pure(
+      ExitCode.Success
+    )
 }

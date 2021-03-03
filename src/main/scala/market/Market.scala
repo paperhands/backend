@@ -38,9 +38,8 @@ object Market {
       .map(l => Ticket(l(0), cleanupDescription(l(1))))
 
   def readFile(f: String) =
-    for {
-      _ <- logger.info(s"reading market data from $f")
-    } yield (Source.fromResource(s"data/$f").getLines())
+    logger.info(s"reading market data from $f") *>
+      IO(Source.fromResource(s"data/$f").getLines())
 
   def load: IO[List[Ticket]] =
     files

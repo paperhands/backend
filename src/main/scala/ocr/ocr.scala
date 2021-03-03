@@ -26,11 +26,9 @@ object OCR extends AddContextShift with HttpBackend {
       ).!!
     )
       .handleErrorWith(e =>
-        for {
-          _ <- logger.error(
-            s"Error processing $input: $e\n${e.getStackTrace.mkString("\n")}"
-          )
-        } yield ("")
+        logger.error(
+          s"Error processing $input: $e\n${e.getStackTrace.mkString("\n")}"
+        ) *> IO.pure("")
       )
   }
 
