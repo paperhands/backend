@@ -115,7 +115,7 @@ trait Reddit extends HttpBackend {
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, items)
         _ <- IO.sleep(delay)
-      } yield (updateState(items, state))
+      } yield (updateState(items, state).take(20))
     }
 
   def loop(
