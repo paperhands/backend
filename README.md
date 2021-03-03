@@ -6,9 +6,9 @@
 * run server `make run-server`
 * run scraper `make run-scrape`
 * dev auto restart:
-** `make sbt`
-** `~reStart server`
-** or `~reStart scrape`
+  * `make sbt`
+  * `~reStart server`
+  * or `~reStart scrape`
 
 ### Dependencies
 
