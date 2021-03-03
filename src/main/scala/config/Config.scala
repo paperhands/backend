@@ -72,10 +72,9 @@ object Config {
     )
 
   def load: IO[Config] =
-    IO(sys.env.getOrElse("PAPERHANDS_ENV", "development")) >>=
-      ((env: String) => IO.pure(s"config/$env.yml")) >>=
-      readFile >>=
-      parseYaml
+    IO(sys.env.getOrElse("PAPERHANDS_ENV", "development")).map(env =>
+      s"config/$env.yml"
+    ) >>= readFile >>= parseYaml
 
   val cfg = load.unsafeRunSync
 }
