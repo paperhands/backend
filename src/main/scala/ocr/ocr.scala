@@ -24,7 +24,7 @@ object OCR extends AddContextShift with HttpBackend {
       "OMP_THREAD_LIMIT" -> "1"
     )
 
-  def processFile(input: String): IO[String] =
+  def runTesseract(input: String) =
     IO(newProc(input).!!)
       .handleErrorWith(e =>
         logger
@@ -33,6 +33,9 @@ object OCR extends AddContextShift with HttpBackend {
           )
           .as("")
       )
+
+  def processFile(input: String): IO[String] =
+    logger.debug(s"processing file $input") *> runTesseract(input)
 
   def tmpFile(prefix: String, postfix: String): Resource[IO, File] =
     Resource.make {
@@ -59,12 +62,10 @@ object OCR extends AddContextShift with HttpBackend {
 
   def processURL(url: String): IO[String] =
     (tmpFile("ocr-", ".image"), backend).tupled.use { case (tmpF, backend) =>
-      for {
-        _ <- logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}")
-        response <- constructRequest(url, tmpF).send(backend)
-        result <-
-          if (shouldProcess(response)) processFile(tmpF.getAbsolutePath)
-          else IO("")
-      } yield (result)
+      logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}") *>
+        constructRequest(url, tmpF)
+          .send(backend)
+          .map(shouldProcess)
+          .ifM(processFile(tmpF.getAbsolutePath), IO.pure(""))
     }
 }
