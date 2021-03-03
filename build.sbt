@@ -48,6 +48,8 @@ lazy val root = project
        "com.codecommit" %% "cats-effect-testing-minitest" % "0.5.2" % "test",
 
        "org.flywaydb"  % "flyway-core"     % "7.5.4",
+
+       "net.ruippeixotog" %% "scala-scraper" % "2.2.0"
     ),
 
   )
