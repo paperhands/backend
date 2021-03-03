@@ -17,14 +17,15 @@ object OCR extends AddContextShift with HttpBackend {
   val logger = Logger("ocr")
   val dpi = "72"
 
-  def processFile(input: String): IO[String] = {
-    IO(
-      Process(
-        Seq("tesseract", input, "stdout", "--dpi", dpi, "-l", "eng"),
-        None,
-        "OMP_THREAD_LIMIT" -> "1"
-      ).!!
+  def newProc(input: String) =
+    Process(
+      Seq("tesseract", input, "stdout", "--dpi", dpi, "-l", "eng"),
+      None,
+      "OMP_THREAD_LIMIT" -> "1"
     )
+
+  def processFile(input: String): IO[String] = {
+    IO(newProc(input).!!)
       .handleErrorWith(e =>
         logger
           .error(
