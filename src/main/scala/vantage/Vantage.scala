@@ -40,7 +40,7 @@ case class VantageResponse(
       .map { case (k, v) =>
         model.TimeSeries(
           symbol,
-          v.open.toInt,
+          (v.open * 100.0).toInt,
           TimeParsing.toInstant(k, meta.timeZone)
         )
       }

@@ -12,3 +12,6 @@ docker-chmod:
 	sudo chmod 777 -R docker/grafana
 
 compose-reset: compose-down docker-chmod docker-rm-storage compose-up
+
+docker-package:
+	docker build . -t app.paperhands:latest
