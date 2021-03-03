@@ -43,7 +43,7 @@ trait Reddit extends HttpBackend {
       endpoint: Endpoint,
       secret: String,
       before: Option[String]
-  ): IO[Either[Error, List[Entry]]] = {
+  ): IO[Either[Throwable, List[Entry]]] = {
     val limit = 100
     val ts = System.currentTimeMillis
     val ua = s"linux:$secret:0.0.1-$ts (by u/coderats)"
@@ -60,35 +60,37 @@ trait Reddit extends HttpBackend {
       .contentType("application/json")
       .get(url)
 
-    backend.use { implicit backend =>
-      for {
-        response <- request.send(backend)
-        body <- IO(response.body.getOrElse(""))
-        _ <-
-          if (!response.code.isSuccess)
-            logger.error(s"Received ${response.code} from $url")
-          else
-            IO.unit
-        result <- IO(decode[RedditListing](body).map(Entry.fromListing(_)))
-      } yield (result)
-    }
+    backend
+      .use { implicit backend =>
+        for {
+          response <- request.send(backend)
+          body <- IO(response.body.getOrElse(""))
+          result <- IO(decode[RedditListing](body).map(Entry.fromListing(_)))
+        } yield (result)
+      }
+      .handleErrorWith(e =>
+        for {
+          _ <- logger.error(s"Error querying reddit $url: $e")
+        } yield (Left(e))
+      )
   }
 
   def getBefore(
-      items: Either[Error, List[Entry]]
+      items: Either[Throwable, List[Entry]],
+      before: Option[String]
   ): Option[String] =
-    items.toOption.map(_.headOption).flatten.map(_.name)
+    items.toOption.map(_.headOption).flatten.map(_.name).orElse(before)
 
   def handleItems(
       xa: HikariTransactor[IO],
-      items: Either[Error, List[Entry]]
+      items: Either[Throwable, List[Entry]]
   ): IO[List[Unit]] = {
     items match {
       case Right(items) =>
         items.traverse(entry => handleEntry(xa, entry))
       case Left(e) =>
         for {
-          _ <- logger.error(s"Error parsing data: $e")
+          _ <- logger.error(s"Did not receive any data: $e")
         } yield (List())
     }
   }
@@ -106,7 +108,7 @@ trait Reddit extends HttpBackend {
           items <- loadItems(endpoint, secret, before)
           _ <- handleItems(xa, items)
           _ <- IO.sleep(delay)
-        } yield (getBefore(items))
+        } yield (getBefore(items, before))
       }
     }
 

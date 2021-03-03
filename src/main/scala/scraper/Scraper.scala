@@ -29,7 +29,13 @@ object RedditScraper extends Reddit with Cfg with Market {
 
   def processURL(url: String): IO[String] =
     for {
-      out <- OCR.processURL(url)
+      out <- OCR
+        .processURL(url)
+        .handleErrorWith(e =>
+          for {
+            _ <- logger.error(s"Error processing $url with OCR: $e")
+          } yield ("")
+        )
     } yield (s"\n$url:\n$out")
 
   def processURLs(urls: List[String]): IO[String] =
