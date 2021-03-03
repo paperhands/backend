@@ -128,11 +128,11 @@ object Vantage extends HttpBackend with Cfg with Decoders {
     decode[VantageResponse](body) match {
       case Right(r) => IO.pure(r)
       case Left(e) => {
-        for {
-          _ <- logger.error(
+        logger
+          .error(
             s"could not parse vantage response: $e from $uri, body:\n$body"
           )
-        } yield (VantageResponse(VantageMeta("", "", "", "", "", ""), Map()))
+          .as(VantageResponse(VantageMeta("", "", "", "", "", ""), Map()))
       }
     }
 
