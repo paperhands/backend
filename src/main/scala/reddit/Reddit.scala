@@ -104,6 +104,7 @@ trait Reddit extends HttpBackend {
     state.iterateForeverM { before =>
       {
         for {
+          _ <- logger.info(s"querying $endpoint for new items before $before")
           items <- loadItems(endpoint, secret, before)
           _ <- handleItems(xa, items)
           _ <- IO.sleep(delay)
