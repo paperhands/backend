@@ -79,10 +79,9 @@ trait Reddit extends HttpBackend {
   }
 
   def getBefore(
-      items: Either[Throwable, List[Entry]],
-      before: Option[String]
+      items: Either[Throwable, List[Entry]]
   ): Option[String] =
-    items.toOption.map(_.headOption).flatten.map(_.name).orElse(before)
+    items.toOption.map(_.headOption).flatten.map(_.name)
 
   def handleItems(
       xa: HikariTransactor[IO],
@@ -110,7 +109,7 @@ trait Reddit extends HttpBackend {
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, items)
         _ <- IO.sleep(delay)
-      } yield (getBefore(items, before))
+      } yield (getBefore(items))
     }
 
   def loop(
@@ -118,7 +117,7 @@ trait Reddit extends HttpBackend {
       secret: String,
       username: String
   ): IO[Unit] = {
-    val commIO = startLoopFor(xa, Comments, secret, username, None, 3.seconds)
+    val commIO = startLoopFor(xa, Comments, secret, username, None, 5.seconds)
     val postIO = startLoopFor(xa, Posts, secret, username, None, 30.seconds)
 
     for {
