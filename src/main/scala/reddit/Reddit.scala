@@ -88,6 +88,10 @@ trait Reddit extends HttpBackend {
     // so solution is to increase query interval and
     // if response is empty drop before value
     // by returning None
+    // TODO this can be improved by storing state in a list
+    // if we get 0 items in a call we fallback to a previous known
+    // id in a list
+    // to not leak memory list can be kept at 20 items max
     items.toOption.map(_.headOption).flatten.map(_.name)
 
   def handleItems(
