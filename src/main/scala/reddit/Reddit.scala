@@ -78,21 +78,14 @@ trait Reddit extends HttpBackend {
       )
   }
 
-  def getBefore(
-      items: Either[Throwable, List[Entry]]
-  ): Option[String] =
-    // at some point I added .orElse(previousBefore)
-    // here previousBefore was Option[String]
-    // this works until you hit a post that is gets deleted
-    // after that you will always receive empty response
-    // so solution is to increase query interval and
-    // if response is empty drop before value
-    // by returning None
-    // TODO this can be improved by storing state in a list
-    // if we get 0 items in a call we fallback to a previous known
-    // id in a list
-    // to not leak memory list can be kept at 20 items max
-    items.toOption.map(_.headOption).flatten.map(_.name)
+  def updateState(
+      items: Either[Throwable, List[Entry]],
+      state: List[String]
+  ): List[String] =
+    items.toOption.map(_.headOption).flatten.map(_.name) match {
+      case Some(id) => id +: state
+      case None     => state.drop(1)
+    }
 
   def handleItems(
       xa: HikariTransactor[IO],
@@ -111,16 +104,18 @@ trait Reddit extends HttpBackend {
       endpoint: Endpoint,
       secret: String,
       username: String,
-      state: Option[String],
+      initialState: List[String],
       delay: FiniteDuration
   ): IO[Unit] =
-    state.iterateForeverM { before =>
+    initialState.iterateForeverM { state =>
+      val before = state.headOption
+
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, items)
         _ <- IO.sleep(delay)
-      } yield (getBefore(items))
+      } yield (updateState(items, state))
     }
 
   def loop(
@@ -128,8 +123,8 @@ trait Reddit extends HttpBackend {
       secret: String,
       username: String
   ): IO[Unit] = {
-    val commIO = startLoopFor(xa, Comments, secret, username, None, 5.seconds)
-    val postIO = startLoopFor(xa, Posts, secret, username, None, 30.seconds)
+    val commIO = startLoopFor(xa, Comments, secret, username, List(), 5.seconds)
+    val postIO = startLoopFor(xa, Posts, secret, username, List(), 30.seconds)
 
     for {
       fc <- commIO.start
