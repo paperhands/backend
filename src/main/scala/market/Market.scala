@@ -43,9 +43,10 @@ object Market {
     } yield (Source.fromResource(s"data/$f").getLines())
 
   def load: IO[List[Ticket]] =
-    for {
-      fileData <- files.traverse(readFile)
-    } yield (processLines(fileData.flatten))
+    files
+      .traverse(readFile)
+      .map(_.flatten)
+      .map(processLines)
 
   val market = load.unsafeRunSync
 }

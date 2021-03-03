@@ -59,16 +59,23 @@ trait Cfg {
 object Config {
   val logger = Logger("main")
 
+  def readFile(path: String) =
+    logger.info(s"loading config from $path") *>
+      IO(Source.fromResource(path).mkString)
+
+  def parseYaml(contents: String) =
+    IO(
+      yaml.parser
+        .parse(contents)
+        .flatMap(_.as[Config])
+        .valueOr(throw _)
+    )
+
   def load: IO[Config] =
-    for {
-      env <- IO(sys.env.getOrElse("PAPERHANDS_ENV", "development"))
-      path <- IO.pure(s"config/$env.yml")
-      _ <- logger.info(s"loading config from $path")
-      ymlString <- IO(Source.fromResource(path).mkString)
-      yml <- IO.pure(yaml.parser.parse(ymlString))
-    } yield (yml
-      .flatMap(_.as[Config])
-      .valueOr(throw _))
+    IO(sys.env.getOrElse("PAPERHANDS_ENV", "development")) >>=
+      ((env: String) => IO.pure(s"config/$env.yml")) >>=
+      readFile >>=
+      parseYaml
 
   val cfg = load.unsafeRunSync
 }
