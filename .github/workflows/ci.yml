@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     container:
-      image: alpine
+      image: openjdk:14-jdk-alpine
     steps:
     - uses: actions/checkout@v2
     - run: apk add make
