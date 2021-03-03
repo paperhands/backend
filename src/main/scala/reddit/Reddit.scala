@@ -78,6 +78,15 @@ trait Reddit extends HttpBackend {
       )
   }
 
+  // Update state by prepending first id from a list
+  // reddit is like a linked list, and we constantly ask for items before some id
+  // problem is: if we have ID that gets deleted we will always get empty response
+  // to fix that we store last 20 ids in reverse order
+  // if we get response we prepend new id to a state list
+  // if we get empty response we drop 1 id (that got us empty response back)
+  // and reuse previous one
+  // that causes some duplication (since we need to process same id twice)
+  // but pretty minimal one
   def updateState(
       items: Either[Throwable, List[Entry]],
       state: List[String]
