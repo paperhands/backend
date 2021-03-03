@@ -31,7 +31,5 @@ object Server extends Cfg with AddContextShift {
     serverBuilder(xa).resource.use(_ => IO.never)
 
   def run(xa: HikariTransactor[IO]): IO[ExitCode] =
-    start(xa) *> IO.pure(
-      ExitCode.Success
-    )
+    start(xa).as(ExitCode.Success)
 }

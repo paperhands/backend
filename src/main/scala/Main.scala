@@ -18,10 +18,16 @@ object Main extends IOApp with ConnectionPool {
         case Some("scrape")                    => Scraper.run(xa)
         case Some("server")                    => Server.run(xa)
         case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
+        case Some("flyway") if args.length < 2 =>
+          logger
+            .error(
+              "flyway command requires an argument (migrate, clean or info)"
+            )
+            .as(ExitCode.Error)
         case _ =>
           logger
-            .error(s"""Unknown command "${args.mkString(" ")}" """) *>
-            IO.pure(ExitCode.Error)
+            .error(s"Unknown command '${args.mkString(" ")}'")
+            .as(ExitCode.Error)
       }
     }
 }

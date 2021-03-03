@@ -24,14 +24,16 @@ object MyFlyway extends Cfg {
       .load()
 
   def migrate: IO[ExitCode] =
-    IO(flyway.migrate) *> IO(ExitCode.Success)
+    IO(flyway.migrate).as(ExitCode.Success)
   def clean: IO[ExitCode] =
-    IO(flyway.clean) *> IO(ExitCode.Success)
+    IO(flyway.clean).as(ExitCode.Success)
+
   def info: IO[ExitCode] =
-    logger.info(
-      s"flyway info:\n${MigrationInfoDumper.dumpToAsciiTable(flyway.info.all)}"
-    ) *>
-      IO(ExitCode.Success)
+    logger
+      .info(
+        s"flyway info:\n${MigrationInfoDumper.dumpToAsciiTable(flyway.info.all)}"
+      )
+      .as(ExitCode.Success)
 
   def run(command: String): IO[ExitCode] =
     command match {

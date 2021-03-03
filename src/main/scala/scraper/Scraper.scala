@@ -174,6 +174,7 @@ object RedditScraper extends Reddit with Cfg with Market {
 
 object Scraper extends Cfg {
   def run(xa: HikariTransactor[IO]): IO[ExitCode] =
-    RedditScraper.loop(xa, cfg.reddit.secret, cfg.reddit.username) *>
-      IO(ExitCode.Success)
+    RedditScraper
+      .loop(xa, cfg.reddit.secret, cfg.reddit.username)
+      .as(ExitCode.Success)
 }
