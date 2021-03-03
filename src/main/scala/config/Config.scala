@@ -47,7 +47,6 @@ case class Sentiment(
     bear: List[String]
 )
 case class Market(
-    // meta: Map[String, String],
     exceptions: List[String],
     ignores: List[String]
 )
