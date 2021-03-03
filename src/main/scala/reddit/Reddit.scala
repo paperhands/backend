@@ -87,12 +87,12 @@ trait Reddit extends HttpBackend {
   def handleItems(
       xa: HikariTransactor[IO],
       items: Either[Throwable, List[Entry]]
-  ): IO[List[Unit]] = {
+  ): IO[Unit] = {
     items match {
       case Right(items) =>
         logger.info(s"running handleEntry on ${items.length} items") *>
-          items.traverse(entry => handleEntry(xa, entry))
-      case Left(_) => IO.pure(List())
+          items.traverse(entry => handleEntry(xa, entry)).void
+      case Left(_) => IO()
     }
   }
 
@@ -105,14 +105,12 @@ trait Reddit extends HttpBackend {
       delay: FiniteDuration
   ): IO[Unit] =
     state.iterateForeverM { before =>
-      {
-        for {
-          _ <- logger.info(s"querying $endpoint for new items before $before")
-          items <- loadItems(endpoint, secret, username, before)
-          _ <- handleItems(xa, items)
-          _ <- IO.sleep(delay)
-        } yield (getBefore(items, before))
-      }
+      for {
+        _ <- logger.info(s"querying $endpoint for new items before $before")
+        items <- loadItems(endpoint, secret, username, before)
+        _ <- handleItems(xa, items)
+        _ <- IO.sleep(delay)
+      } yield (getBefore(items, before))
     }
 
   def loop(
