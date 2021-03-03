@@ -51,5 +51,4 @@ lazy val root = project
 
        "net.ruippeixotog" %% "scala-scraper" % "2.2.0"
     ),
-
   )
