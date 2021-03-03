@@ -114,7 +114,7 @@ trait Reddit extends HttpBackend {
     }
 
   def loop(xa: HikariTransactor[IO], secret: String): IO[Unit] = {
-    val commentsIO = startLoopFor(xa, Comments, secret, None, 2.seconds)
+    val commentsIO = startLoopFor(xa, Comments, secret, None, 3.seconds)
     val postsIO = startLoopFor(xa, Posts, secret, None, 30.seconds)
 
     for {
