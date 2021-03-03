@@ -118,13 +118,12 @@ trait Reddit extends HttpBackend {
       secret: String,
       username: String
   ): IO[Unit] = {
-    val commentsIO =
-      startLoopFor(xa, Comments, secret, username, None, 3.seconds)
-    val postsIO = startLoopFor(xa, Posts, secret, username, None, 30.seconds)
+    val commIO = startLoopFor(xa, Comments, secret, username, None, 3.seconds)
+    val postIO = startLoopFor(xa, Posts, secret, username, None, 30.seconds)
 
     for {
-      fc <- commentsIO.start
-      fp <- postsIO.start
+      fc <- commIO.start
+      fp <- postIO.start
       _ <- fc.join
       _ <- fp.join
     } yield ()
