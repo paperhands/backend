@@ -10,5 +10,7 @@ run-server:
 	sbt "run server"
 test:
 	sbt test
+uberjar:
+	sbt clean assembly
 sbt:
 	sbt
