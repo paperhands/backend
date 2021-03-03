@@ -42,11 +42,12 @@ trait Reddit extends HttpBackend {
   def loadItems(
       endpoint: Endpoint,
       secret: String,
+      username: String,
       before: Option[String]
   ): IO[Either[Throwable, List[Entry]]] = {
     val limit = 100
     val ts = System.currentTimeMillis
-    val ua = s"linux:$secret:0.0.1-$ts (by u/coderats)"
+    val ua = s"linux:$secret:0.0.1-$ts (by u/$username)"
     val url =
       endpoint match {
         case Posts =>
@@ -99,6 +100,7 @@ trait Reddit extends HttpBackend {
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
       secret: String,
+      username: String,
       state: Option[String],
       delay: FiniteDuration
   ): IO[Unit] =
@@ -106,16 +108,21 @@ trait Reddit extends HttpBackend {
       {
         for {
           _ <- logger.info(s"querying $endpoint for new items before $before")
-          items <- loadItems(endpoint, secret, before)
+          items <- loadItems(endpoint, secret, username, before)
           _ <- handleItems(xa, items)
           _ <- IO.sleep(delay)
         } yield (getBefore(items, before))
       }
     }
 
-  def loop(xa: HikariTransactor[IO], secret: String): IO[Unit] = {
-    val commentsIO = startLoopFor(xa, Comments, secret, None, 3.seconds)
-    val postsIO = startLoopFor(xa, Posts, secret, None, 30.seconds)
+  def loop(
+      xa: HikariTransactor[IO],
+      secret: String,
+      username: String
+  ): IO[Unit] = {
+    val commentsIO =
+      startLoopFor(xa, Comments, secret, username, None, 3.seconds)
+    val postsIO = startLoopFor(xa, Posts, secret, username, None, 30.seconds)
 
     for {
       fc <- commentsIO.start

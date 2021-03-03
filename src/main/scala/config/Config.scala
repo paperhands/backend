@@ -22,6 +22,7 @@ case class Config(
 )
 case class Reddit(
     secret: String,
+    username: String,
     thread_pool: Int
 )
 case class Repository(

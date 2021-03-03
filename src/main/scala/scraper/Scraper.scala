@@ -21,11 +21,18 @@ import doobie.util.ExecutionContexts
 import monocle.macros.syntax.all._
 import doobie.hikari.HikariTransactor
 
+import scala.concurrent._
+import java.util.concurrent.ExecutorService
+
 object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
-  val pool = Executors.newFixedThreadPool(cfg.reddit.thread_pool)
+  override val cs: ContextShift[IO] = IO.contextShift(
+    ExecutionContext.fromExecutorService(
+      Executors.newFixedThreadPool(cfg.reddit.thread_pool)
+    )
+  )
 
   def processURL(url: String): IO[String] =
     for {
@@ -168,6 +175,6 @@ object RedditScraper extends Reddit with Cfg with Market {
 object Scraper extends Cfg {
   def run(xa: HikariTransactor[IO]): IO[ExitCode] =
     for {
-      _ <- RedditScraper.loop(xa, cfg.reddit.secret)
+      _ <- RedditScraper.loop(xa, cfg.reddit.secret, cfg.reddit.username)
     } yield (ExitCode.Success)
 }
