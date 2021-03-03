@@ -24,7 +24,7 @@ object OCR extends AddContextShift with HttpBackend {
       "OMP_THREAD_LIMIT" -> "1"
     )
 
-  def processFile(input: String): IO[String] = {
+  def processFile(input: String): IO[String] =
     IO(newProc(input).!!)
       .handleErrorWith(e =>
         logger
@@ -33,39 +33,38 @@ object OCR extends AddContextShift with HttpBackend {
           )
           .as("")
       )
-  }
 
   def tmpFile(prefix: String, postfix: String): Resource[IO, File] =
     Resource.make {
       IO(File.createTempFile(prefix, postfix))
     } { f =>
       IO(f.delete())
+        .handleErrorWith(e => logger.error(s"Could not delete tmp file: $e"))
+        .void
     }
 
   def constructRequest(
       url: String,
       file: File
-  ): IO[Request[Either[String, File], Any with Any]] =
-    IO(
-      basicRequest
-        .response(asFile(file))
-        .get(uri"$url")
-    )
+  ): Request[Either[String, File], Any with Any] =
+    basicRequest
+      .response(asFile(file))
+      .get(uri"$url")
+
+  def shouldProcess(response: Response[Either[String, File]]) =
+    response
+      .header("Content-Type")
+      .filter(_.startsWith("image/"))
+      .isDefined
 
   def processURL(url: String): IO[String] =
     (tmpFile("ocr-", ".image"), backend).tupled.use { case (tmpF, backend) =>
       for {
         _ <- logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}")
-        request <- constructRequest(url, tmpF)
-        response <- request.send(backend)
-        shouldProcess <- IO(
-          response
-            .header("Content-Type")
-            .filter(_.startsWith("image/"))
-            .isDefined
-        )
+        response <- constructRequest(url, tmpF).send(backend)
         result <-
-          if (shouldProcess) processFile(tmpF.getAbsolutePath) else IO("")
+          if (shouldProcess(response)) processFile(tmpF.getAbsolutePath)
+          else IO("")
       } yield (result)
     }
 }
