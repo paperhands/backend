@@ -88,10 +88,7 @@ trait Reddit extends HttpBackend {
     items match {
       case Right(items) =>
         items.traverse(entry => handleEntry(xa, entry))
-      case Left(e) =>
-        for {
-          _ <- logger.error(s"Did not receive any data: $e")
-        } yield (List())
+      case Left(_) => IO.pure(List())
     }
   }
 
