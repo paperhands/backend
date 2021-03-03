@@ -153,7 +153,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       engagements <- IO.pure(
         engagementFor(entry, symbols ++ treeSymbols)
       )
-      _ <- logger.info(
+      _ <- logger.debug(
         s"${entry.author}: ${entry.body} | ${sentiments
           .map(_.symbol)
           .mkString(" ")} <--> ${engagements.map(_.symbol).mkString(" ")} |"
