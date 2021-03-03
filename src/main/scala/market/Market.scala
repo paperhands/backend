@@ -39,10 +39,11 @@ object Market {
 
   def readFile(f: String) =
     logger.info(s"reading market data from $f") *>
-      IO(Source.fromResource(s"data/$f").getLines())
+      IO(Source.fromResource(f).getLines())
 
   def load: IO[List[Ticket]] =
     files
+      .map(f => s"data/$f")
       .traverse(readFile)
       .map(_.flatten)
       .map(processLines)
