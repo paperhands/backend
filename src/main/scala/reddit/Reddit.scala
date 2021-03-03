@@ -91,9 +91,9 @@ trait Reddit extends HttpBackend {
       items: Either[Throwable, List[Entry]],
       state: List[String]
   ): List[String] =
-    items.toOption.map(_.headOption).flatten.map(_.name) match {
-      case Some(id) => id +: state
-      case None     => state.drop(1)
+    items match {
+      case Right(items) => items.map(_.name) ++ state
+      case Left(_)      => state.drop(1)
     }
 
   def handleItems(
@@ -124,7 +124,7 @@ trait Reddit extends HttpBackend {
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, items)
         _ <- IO.sleep(delay)
-      } yield (updateState(items, state).take(50))
+      } yield (updateState(items, state).take(500))
     }
 
   def loop(
@@ -133,7 +133,7 @@ trait Reddit extends HttpBackend {
       username: String
   ): IO[Unit] = {
     val commIO = startLoopFor(xa, Comments, secret, username, List(), 5.seconds)
-    val postIO = startLoopFor(xa, Posts, secret, username, List(), 80.seconds)
+    val postIO = startLoopFor(xa, Posts, secret, username, List(), 60.seconds)
 
     for {
       fc <- commIO.start
