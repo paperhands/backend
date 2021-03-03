@@ -7,8 +7,10 @@ import cats.implicits._
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.internal.info.MigrationInfoDumper
 import app.paperhands.config.{Config, Cfg}
+import app.paperhands.io.Logger
 
 object MyFlyway extends Cfg {
+  val logger = Logger("flyway")
   val location = "classpath:migrations"
 
   def flyway: Flyway =
@@ -22,13 +24,14 @@ object MyFlyway extends Cfg {
       .load()
 
   def migrate: IO[ExitCode] =
-    IO(flyway.migrate).flatMap(_ => IO(ExitCode.Success))
+    IO(flyway.migrate) *> IO(ExitCode.Success)
   def clean: IO[ExitCode] =
-    IO(flyway.clean).flatMap(_ => IO(ExitCode.Success))
+    IO(flyway.clean) *> IO(ExitCode.Success)
   def info: IO[ExitCode] =
-    IO(print(MigrationInfoDumper.dumpToAsciiTable(flyway.info.all))).flatMap(
-      _ => IO(ExitCode.Success)
-    )
+    logger.info(
+      s"flyway info:\n${MigrationInfoDumper.dumpToAsciiTable(flyway.info.all)}"
+    ) *>
+      IO(ExitCode.Success)
 
   def run(command: String): IO[ExitCode] =
     command match {

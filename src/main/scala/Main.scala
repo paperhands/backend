@@ -20,8 +20,8 @@ object Main extends IOApp with ConnectionPool {
         case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
         case _ =>
           logger
-            .error(s"""Unknown command "${args.mkString(" ")}" """)
-            .flatMap(_ => IO.pure(ExitCode.Error))
+            .error(s"""Unknown command "${args.mkString(" ")}" """) *>
+            IO.pure(ExitCode.Error)
       }
     }
 }
