@@ -70,7 +70,9 @@ trait Reddit extends HttpBackend {
       }
       .handleErrorWith(e =>
         for {
-          _ <- logger.error(s"Error querying reddit $url: $e")
+          _ <- logger.error(
+            s"Error querying reddit $url: $e\n${e.getStackTrace.mkString("\n")}"
+          )
         } yield (Left(e))
       )
   }
