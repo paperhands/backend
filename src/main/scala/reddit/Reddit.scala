@@ -92,8 +92,9 @@ trait Reddit extends HttpBackend {
       state: List[String]
   ): List[String] =
     items match {
-      case Right(items) => items.map(_.name) ++ state
-      case Left(_)      => state.drop(1)
+      case Right(items) if items.length == 0 => state.drop(1)
+      case Right(items)                      => items.map(_.name) ++ state
+      case Left(_)                           => state.drop(1)
     }
 
   def handleItems(
