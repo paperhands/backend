@@ -81,6 +81,13 @@ trait Reddit extends HttpBackend {
   def getBefore(
       items: Either[Throwable, List[Entry]]
   ): Option[String] =
+    // at some point I added .orElse(previousBefore)
+    // here previousBefore was Option[String]
+    // this works until you hit a post that is gets deleted
+    // after that you will always receive empty response
+    // so solution is to increase query interval and
+    // if response is empty drop before value
+    // by returning None
     items.toOption.map(_.headOption).flatten.map(_.name)
 
   def handleItems(
