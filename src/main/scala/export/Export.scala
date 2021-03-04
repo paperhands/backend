@@ -41,42 +41,37 @@ object Export extends AddContextShift {
     "symbols"
   )
 
-  def contentToRows(content: List[model.Content]) =
-    Stream.emits(
-      content
-        .map(c =>
-          Row(
-            NonEmptyList.of(
-              c.id,
-              c.kind,
-              c.source,
-              c.parent_id.mkString,
-              c.permalink,
-              c.body,
-              c.created_time.toString,
-              c.parsed.symbols.mkString(" ")
-            )
-          )
-        )
+  def contentToRow(c: model.Content) =
+    Row(
+      NonEmptyList.of(
+        c.id,
+        c.kind,
+        c.source,
+        c.parent_id.mkString,
+        c.permalink,
+        c.body,
+        c.created_time.toString,
+        c.parsed.symbols.mkString(" ")
+      )
     )
 
-  def writeStream(stream: Stream[Pure, Row], f: String) =
+  def writeStream(stream: Stream[IO, Row], f: String) =
     stream
       .through(writeWithHeaders(header))
       .through(toRowStrings(separator = ',', newline = "\n"))
       .through(text.utf8Encode)
-      .lift[IO]
       .through(writeAll(Paths.get(f), blocker))
       .compile
       .drain
 
   def exportData(f: String, xa: HikariTransactor[IO]): IO[ExitCode] =
-    for {
-      content <- Storage.getContentForExport.transact(xa)
-      rows <- IO(contentToRows(content))
-      _ <- logger.info(s"Exporting ${content.length} rows to $f")
-      _ <- writeStream(rows, f)
-    } yield (ExitCode.Success)
+    writeStream(
+      Storage.getContentForExport
+        .transact(xa)
+        .map(contentToRow),
+      f
+    )
+      .as(ExitCode.Success)
 
   def run(
       target: Option[String],

@@ -14,6 +14,8 @@ import cats._
 import cats.effect._
 import cats.implicits._
 
+import fs2._
+
 import scala.concurrent._
 
 trait ConnectionPool {
@@ -209,7 +211,7 @@ object Storage extends model.DoobieMetas {
       .query[model.TimeSeries]
       .to[List]
 
-  def getContentForExport: ConnectionIO[List[model.Content]] =
+  def getContentForExport: Stream[ConnectionIO, model.Content] =
     sql"""
       SELECT
         id, type, origin, parent_id, permalink, author, body, origin_time, parsed
@@ -217,5 +219,5 @@ object Storage extends model.DoobieMetas {
       WHERE body IS NOT NULL
     """
       .query[model.Content]
-      .to[List]
+      .stream
 }
