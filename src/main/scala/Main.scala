@@ -6,6 +6,7 @@ import cats.implicits._
 import app.paperhands.scraper.Scraper
 import app.paperhands.server.Server
 import app.paperhands.flyway.MyFlyway
+import app.paperhands.export.Export
 import app.paperhands.io.Logger
 import app.paperhands.storage.ConnectionPool
 
@@ -17,7 +18,14 @@ object Main extends IOApp with ConnectionPool {
       args.headOption match {
         case Some("scrape")                    => Scraper.run(xa)
         case Some("server")                    => Server.run(xa)
+        case Some("export") if args.length > 1 => Export.run(args(1))
         case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
+        case Some("export") if args.length < 2 =>
+          logger
+            .error(
+              "export command requires an argument (content)"
+            )
+            .as(ExitCode.Error)
         case Some("flyway") if args.length < 2 =>
           logger
             .error(
