@@ -9,13 +9,15 @@ import app.paperhands.io.Logger
 object Export {
   val logger = Logger("export")
 
-  def exportData: IO[Unit] =
-    IO.unit
+  def exportData: IO[ExitCode] =
+    IO.unit.as(ExitCode.Success)
 
-  def run(target: String): IO[ExitCode] =
+  def run(target: Option[String]): IO[ExitCode] =
     target match {
-      case "content" => exportData.as(ExitCode.Success)
+      case Some("content") => exportData
       case _ =>
-        logger.error(s"Unknown export target '$target'").as(ExitCode.Error)
+        logger
+          .error(s"Unknown export target '$target'")
+          .as(ExitCode.Error)
     }
 }

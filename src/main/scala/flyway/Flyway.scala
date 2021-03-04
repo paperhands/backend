@@ -35,11 +35,14 @@ object MyFlyway extends Cfg {
       )
       .as(ExitCode.Success)
 
-  def run(command: String): IO[ExitCode] =
+  def run(command: Option[String]): IO[ExitCode] =
     command match {
-      case "migrate" => migrate
-      case "clean"   => clean
-      case "info"    => info
-      case _         => IO.pure(ExitCode.Error)
+      case Some("migrate") => migrate
+      case Some("clean")   => clean
+      case Some("info")    => info
+      case _ =>
+        logger
+          .error(s"Unknown flyway command '$command'")
+          .as(ExitCode.Error)
     }
 }

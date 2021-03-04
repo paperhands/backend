@@ -18,20 +18,8 @@ object Main extends IOApp with ConnectionPool {
       args.headOption match {
         case Some("scrape")                    => Scraper.run(xa)
         case Some("server")                    => Server.run(xa)
-        case Some("export") if args.length > 1 => Export.run(args(1))
-        case Some("flyway") if args.length > 1 => MyFlyway.run(args(1))
-        case Some("export") if args.length < 2 =>
-          logger
-            .error(
-              "export command requires an argument (content)"
-            )
-            .as(ExitCode.Error)
-        case Some("flyway") if args.length < 2 =>
-          logger
-            .error(
-              "flyway command requires an argument (migrate, clean or info)"
-            )
-            .as(ExitCode.Error)
+        case Some("export") if args.length > 1 => Export.run(args.get(1))
+        case Some("flyway") if args.length > 1 => MyFlyway.run(args.get(1))
         case _ =>
           logger
             .error(s"Unknown command '${args.mkString(" ")}'")
