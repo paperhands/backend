@@ -109,13 +109,23 @@ trait Reddit extends HttpBackend {
     }
   }
 
+  def calculateSleep(endpoint: Endpoint, length: Int): IO[Unit] = {
+    val duration = endpoint match {
+      case _ if length > 90 => 3.seconds
+      case Comments         => 15.seconds
+      case Posts            => 60.seconds
+    }
+
+    logger.info(s"Sleeping for $duration for $endpoint") *>
+      IO.sleep(duration)
+  }
+
   def startLoopFor(
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
       secret: String,
       username: String,
-      initialState: List[String],
-      delay: FiniteDuration
+      initialState: List[String]
   ): IO[Unit] =
     initialState.iterateForeverM { state =>
       val before = state.headOption
@@ -124,7 +134,7 @@ trait Reddit extends HttpBackend {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, items)
-        _ <- IO.sleep(delay)
+        _ <- calculateSleep(endpoint, items.toList.flatten.length)
       } yield (updateState(items, state).take(500))
     }
 
@@ -133,8 +143,8 @@ trait Reddit extends HttpBackend {
       secret: String,
       username: String
   ): IO[Unit] = {
-    val commIO = startLoopFor(xa, Comments, secret, username, List(), 5.seconds)
-    val postIO = startLoopFor(xa, Posts, secret, username, List(), 60.seconds)
+    val commIO = startLoopFor(xa, Comments, secret, username, List())
+    val postIO = startLoopFor(xa, Posts, secret, username, List())
 
     for {
       fc <- commIO.start
