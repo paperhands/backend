@@ -9,7 +9,7 @@ run-scrape:
 run-server:
 	sbt "run server"
 run-export:
-	sbt "run export"
+	sbt "run export content"
 test:
 	sbt test
 uberjar:
