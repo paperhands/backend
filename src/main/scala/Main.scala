@@ -16,9 +16,10 @@ object Main extends IOApp with ConnectionPool {
   override def run(args: List[String]): IO[ExitCode] =
     transactor.use { xa =>
       args.headOption match {
-        case Some("scrape")                    => Scraper.run(xa)
-        case Some("server")                    => Server.run(xa)
-        case Some("export") if args.length > 1 => Export.run(args.get(1))
+        case Some("scrape") => Scraper.run(xa)
+        case Some("server") => Server.run(xa)
+        case Some("export") if args.length > 1 =>
+          Export.run(args.get(1), args.get(2), xa)
         case Some("flyway") if args.length > 1 => MyFlyway.run(args.get(1))
         case _ =>
           logger

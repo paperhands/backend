@@ -1,7 +1,9 @@
-val scala3Version = "2.13.5"
+val _scalaVersion = "2.13.5"
 val circeVersion = "0.14.0-M4"
 val http4sVersion = "0.21.19"
 val sttpVersion = "3.1.6"
+val f2sVersion = "2.5.0"
+val f2sDataVersion = "0.9.0"
 
 lazy val root = project
   .in(file("."))
@@ -9,7 +11,7 @@ lazy val root = project
     name := "app.paperhands",
     version := "0.1.0",
 
-    scalaVersion := scala3Version,
+    scalaVersion := _scalaVersion,
     scalacOptions += "-Ymacro-annotations",
     fork in run := true,
     cancelable in Global := true,
@@ -49,6 +51,14 @@ lazy val root = project
 
        "org.flywaydb"  % "flyway-core"     % "7.5.4",
 
-       "net.ruippeixotog" %% "scala-scraper" % "2.2.0"
+       "net.ruippeixotog" %% "scala-scraper" % "2.2.0",
+
+       "co.fs2" %% "fs2-core" % f2sVersion,
+       "co.fs2" %% "fs2-io" % f2sVersion,
+
+       "org.gnieh" %% "fs2-data-csv" % f2sDataVersion,
+
+       "org.typelevel" %% "cats-core" % "2.2.0",
+       "org.typelevel" %% "cats-effect" % "2.3.1"
     ),
   )

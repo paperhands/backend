@@ -208,4 +208,14 @@ object Storage extends model.DoobieMetas {
     """
       .query[model.TimeSeries]
       .to[List]
+
+  def getContentForExport: ConnectionIO[List[model.Content]] =
+    sql"""
+      SELECT
+        id, type, origin, parent_id, permalink, author, body, origin_time, parsed
+      FROM content
+      WHERE body IS NOT NULL
+    """
+      .query[model.Content]
+      .to[List]
 }
