@@ -8,6 +8,8 @@ run-scrape:
 	sbt "run scrape"
 run-server:
 	sbt "run server"
+run-export:
+	sbt "run export"
 test:
 	sbt test
 uberjar:
