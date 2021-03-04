@@ -7,7 +7,13 @@ import cats.effect._
 import cats.implicits._
 import cats.syntax._
 
+import fs2._
+import fs2.io.file._
+import fs2.data.csv._
+import java.nio.file.{Files, Paths}
+
 import app.paperhands.io.Logger
+import app.paperhands.io.AddContextShift
 
 case class Ticket(
     symbol: String,
@@ -18,10 +24,10 @@ trait Market {
   val market: List[Ticket] = Market.market
 }
 
-object Market {
+object Market extends AddContextShift {
   val logger = Logger("market-data")
 
-  val files = List("custom.txt", "nasdaqlisted.txt", "otherlisted.txt")
+  val files = List("nasdaqlisted.txt", "otherlisted.txt", "custom.txt")
   val cleanRe = "(?i)(?<=(inc|corp)\\.).*".r
   val afterCleanupRe = "(?i) (class [a-z]|common stock).*".r
 
@@ -30,23 +36,25 @@ object Market {
       re.replaceAllIn(desc, "")
     }
 
-  def processLines(lines: List[String]): List[Ticket] =
-    lines
-      .map(_.split("\\|"))
-      .filter(_.length >= 2)
-      .filter(_(0) != "Symbol")
-      .map(l => Ticket(l(0), cleanupDescription(l(1))))
+  def parseCsv(csv: String) =
+    Stream
+      .emits(csv)
+      .through(rows[IO]('|'))
+      .map(l => List(l.get(0), l.get(1)).sequence)
+      .collect {
+        case Some(List(s, d)) if s != "Symbol" =>
+          Ticket(s, d)
+      }
+      .compile
+      .toList
 
   def readFile(f: String) =
     logger.info(s"reading market data from $f") *>
-      IO(Source.fromResource(f).getLines())
+      IO(Source.fromResource(s"data/$f").mkString) >>=
+      parseCsv
 
   def load: IO[List[Ticket]] =
-    files
-      .map(f => s"data/$f")
-      .traverse(readFile)
-      .map(_.flatten)
-      .map(processLines)
+    files.traverse(readFile).map(_.flatten)
 
   val market = load.unsafeRunSync
 }

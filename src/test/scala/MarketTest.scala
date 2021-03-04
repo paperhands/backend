@@ -9,6 +9,10 @@ object MarketTestSuite extends SimpleTestSuite {
     )
   test("load") {
     assert(Market.market.length >= 9949)
+
+    var symbs = Market.market.map(_.symbol)
+    assertEquals(symbs.find(_ == "Symbol"), None)
+    assertEquals(symbs.find(_ == "ZQK"), Some("ZQK"))
   }
 
   test("cleanupDescription") {
