@@ -86,6 +86,8 @@ market:
     - MSOS
     - TLRY
     - SNDL
+    - CMI
+
   ignores:
     - PE
     - TD
