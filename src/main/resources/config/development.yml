@@ -87,6 +87,7 @@ market:
     - TLRY
     - SNDL
     - CMI
+    - CUM
 
   ignores:
     - PE
