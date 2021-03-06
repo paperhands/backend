@@ -88,13 +88,13 @@ object RedditScraper extends Reddit with Cfg with Market {
   def isIgnored(symb: String): Boolean =
     cfg.market.ignores.find(_ == symb).isDefined
 
-  val exceptionRe = s"(?is).*\\s+$s\\b.*".r
-  val normalRe = s"(?is).*\\s*\\$$$s\\b.*".r
-  val desperationRe = s"(?s).*\\b+$s\\b.*".r
   def getSymbols(body: String): List[String] =
     market
       .map(_.symbol)
       .filter(s => {
+        val exceptionRe = s"(?is).*\\s+$s\\b.*".r
+        val normalRe = s"(?is).*\\s*\\$$$s\\b.*".r
+        val desperationRe = s"(?s).*\\b+$s\\b.*".r
         // Logic here is if its an exception symbol just match for GME
         // otherwise try to match for $GME
         // if this did not work make sure its not an exception
@@ -103,10 +103,10 @@ object RedditScraper extends Reddit with Cfg with Market {
         // and case sensitive
         // \b does not work at the end or beginning of string
         (isException(s) && exceptionRe.matches(body)) ||
-          (normalRe.matches(body)) ||
-          (!isIgnored(s) &&
-            s.length() > 1 &&
-            desperationRe.matches(body))
+        (normalRe.matches(body)) ||
+        (!isIgnored(s) &&
+          s.length() > 1 &&
+          desperationRe.matches(body))
       })
 
   def sentimentFor(
