@@ -51,7 +51,7 @@ lazy val root = project
        "io.monix" %% "minitest-laws" % "2.9.3" % "test",
        "com.codecommit" %% "cats-effect-testing-minitest" % "0.5.2" % "test",
 
-       "org.flywaydb"  % "flyway-core"     % "7.5.4",
+       "org.flywaydb"  % "flyway-core"     % "7.6.0",
 
        "net.ruippeixotog" %% "scala-scraper" % "2.2.0",
 
