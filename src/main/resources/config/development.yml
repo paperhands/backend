@@ -130,5 +130,11 @@ market:
     - EDIT
     - WANT
     - BEST
+    - BE
+    - ARE
+    - OR
+    - CAN
+    - AT
+    - ON
     # they mean robinhood by saying RH
     - RH
