@@ -135,6 +135,6 @@ market:
     - OR
     - CAN
     - AT
-    - ON
+    - "ON"
     # they mean robinhood by saying RH
     - RH
