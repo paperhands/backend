@@ -180,7 +180,7 @@ object Handler extends Encoders with AddContextShift {
       Ok(getQuoteTrending(xa))
     case GET -> Root / "quote" / "details" / symbol / period =>
       Ok(getDetails(xa, symbol.toUpperCase, period))
-    case GET -> Root / "quote" / "sample" / symbol =>
+    case GET -> Root / "content" / "sample" / symbol =>
       Ok(getSampleContent(xa, symbol.toUpperCase))
   }
 }
