@@ -137,5 +137,6 @@ market:
     - AT
     - "ON"
     - RS
+    - IQ
     # they mean robinhood by saying RH
     - RH
