@@ -107,6 +107,8 @@ trait Encoders {
     jsonEncoderOf[IO, List[QuoteTrending]]
   implicit val QuoteDetailsEncoder: EntityEncoder[IO, QuoteDetails] =
     jsonEncoderOf[IO, QuoteDetails]
+  implicit val ContentListEncoder: EntityEncoder[IO, List[model.Content]] =
+    jsonEncoderOf[IO, List[model.Content]]
 }
 
 object Handler extends Encoders with AddContextShift {
@@ -166,10 +168,19 @@ object Handler extends Encoders with AddContextShift {
       .fromQueryResults(mentions, engagements, sentiments, price, popularity))
   }
 
+  def getSampleContent(
+      xa: HikariTransactor[IO],
+      symbol: String
+  ): IO[List[model.Content]] = {
+    Storage.getSamples(symbol, 10).transact(xa)
+  }
+
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "trending" =>
       Ok(getQuoteTrending(xa))
     case GET -> Root / "quote" / "details" / symbol / period =>
       Ok(getDetails(xa, symbol.toUpperCase, period))
+    case GET -> Root / "quote" / "sample" / symbol =>
+      Ok(getSampleContent(xa, symbol.toUpperCase))
   }
 }

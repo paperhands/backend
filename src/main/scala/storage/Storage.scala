@@ -220,4 +220,19 @@ object Storage extends model.DoobieMetas {
     """
       .query[model.Content]
       .stream
+
+  def getSamples(
+      symbol: String,
+      limit: Int
+  ): ConnectionIO[List[model.Content]] =
+    sql"""
+      SELECT
+        id, type, origin, parent_id, permalink, author, body, origin_time, parsed
+      FROM content
+      WHERE id IN (SELECT origin_id FROM sentiments WHERE symbol = $symbol)
+      ORDER BY random()
+      LIMIT $limit
+    """
+      .query[model.Content]
+      .to[List]
 }
