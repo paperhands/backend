@@ -12,14 +12,15 @@ import cats.implicits._
 import scala.concurrent._
 
 import app.paperhands.io.{Logger, AddContextShift, HttpBackend}
+import app.paperhands.config.Cfg
 
-object OCR extends AddContextShift with HttpBackend {
+object OCR extends AddContextShift with HttpBackend with Cfg {
   val logger = Logger("ocr")
   val dpi = "72"
 
   def newProc(input: String) =
     Process(
-      Seq("tesseract", input, "stdout", "--dpi", dpi, "-l", "eng"),
+      Seq(cfg.tesseract.command, input, "stdout", "--dpi", dpi, "-l", "eng"),
       None,
       "OMP_THREAD_LIMIT" -> "1"
     )

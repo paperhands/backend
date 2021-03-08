@@ -17,6 +17,7 @@ case class Config(
     repository: Repository,
     http: Http,
     vantage: Vantage,
+    tesseract: Tesseract,
     sentiment: Sentiment,
     market: Market
 )
@@ -41,6 +42,9 @@ case class Http(
 )
 case class Vantage(
     api_key: String
+)
+case class Tesseract(
+    command: String
 )
 case class Sentiment(
     bull: List[String],
