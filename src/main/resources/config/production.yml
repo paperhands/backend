@@ -10,6 +10,9 @@ http:
 vantage:
   api_key: GUS0Y6G5HRQE4MMN
 
+tesseract:
+  command: /usr/bin/tesseract
+
 repository:
   adapter: pg
   user: root
