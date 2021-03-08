@@ -69,7 +69,10 @@ object Yahoo extends HttpBackend with Cfg {
     val doc = browser.parseString(body)
     val txt = doc >> text("#quote-header-info")
     val price =
-      priceRe.findFirstIn(txt).flatMap(_.toDoubleOption).getOrElse(0.0)
+      priceRe
+        .findFirstIn(txt)
+        .flatMap(_.toDoubleOption)
+        .getOrElse(0.0)
 
     IO(YahooResponse(price))
   }
