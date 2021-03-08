@@ -1,0 +1,143 @@
+reddit:
+  secret: c1PyjStqy4XJ1w
+  username: coderats
+  thread_pool: 2
+
+http:
+  port: 8888
+  host: localhost
+
+vantage:
+  api_key: GUS0Y6G5HRQE4MMN
+
+repository:
+  adapter: pg
+  user: root
+  password: 9wHbTlyQxjE
+  host: 172.17.0.1
+  port: 5432
+  database: sentimental_dev
+  max_conns: 25
+  min_conns: 5
+  conn_lifetime: 0
+
+sentiment:
+  bull:
+    - dip
+    - buy
+    - bought
+    - eod
+    - hold
+    - yolo
+    - moon
+    - calls
+    - alpha
+    - choo
+    - call opt
+    - baby
+    - 💎
+    - 🚀
+    - 🦍
+    - 📈
+    - 💪
+  bear:
+    - down
+    - sell
+    - puts
+    - put opt
+    - bubble
+    - 🐻
+    - 🧸
+    - 📉
+
+market:
+  meta:
+  exceptions:
+    - GME
+    - AMC
+    - BB
+    - TSLA
+    - SPY
+    - PLTR
+    - AAPL
+    - NOK
+    - NIO
+    - AMD
+    - NVDA
+    - AMZN
+    - BABA
+    - MSFT
+    - NFLX
+    - SHOP
+    - UBER
+    - INTC
+    - NTDOY
+    # those just found in messages
+    - CCIV
+    - CRSR
+    # weeds
+    - APHA
+    - WMD
+    - WEED
+    - TCNFF
+    - GTBIF
+    - CRLBF
+    - CCHWF
+    - AYRWF
+    - MSOS
+    - TLRY
+    - SNDL
+    - CMI
+    - CUM
+
+  ignores:
+    - PE
+    - TD
+    - HOLD
+    - FUD
+    - DD
+    - USD
+    - ETF
+    - CEO
+    - IMO
+    - AND
+    - BIG
+    - EOD
+    - ALL
+    - IPO
+    - ITM
+    - DIS
+    - EV
+    - PM
+    - USA
+    - ONE
+    - WSB
+    - AM
+    - IT
+    - OMG
+    - OUT
+    - SUB
+    - HF
+    - FOR
+    - BRO
+    - BOI
+    - NOW
+    - MORE
+    - YOLO
+    - LIVE
+    - MOON
+    - JUST
+    - EDIT
+    - WANT
+    - BEST
+    - BE
+    - ARE
+    - OR
+    - CAN
+    - AT
+    - "ON"
+    - RS
+    - IQ
+    - GO
+    # they mean robinhood by saying RH
+    - RH
