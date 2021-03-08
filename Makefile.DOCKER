@@ -1,3 +1,5 @@
+IMAGE_NAME = docker.pkg.github.com/paperhands/backend/app.paperhands:latest
+
 compose-up:
 	docker-compose -f docker/docker-compose.yml up -d
 
@@ -14,4 +16,13 @@ docker-chmod:
 compose-reset: compose-down docker-chmod docker-rm-storage compose-up
 
 docker-package:
-	docker build . -t app.paperhands:latest
+	docker build . -t $(IMAGE_NAME)
+
+docker-gh-login:
+	echo $(GH_TOKEN) | docker login https://docker.pkg.github.com -u Gonzih --password-stdin
+
+docker-push:
+	docker push $(IMAGE_NAME)
+
+docker-pull:
+	docker pull $(IMAGE_NAME)
