@@ -13,6 +13,7 @@ jobs:
     - run: make apk-deps alpine-install-sbt data uberjar docker-package
     - uses: docker/login-action@v1
       with:
+        registry: docker.pkg.github.com
         username: ${{ secrets.GH_USERNAME }}
         password: ${{ secrets.GH_TOKEN }}
     - run: make docker-push
