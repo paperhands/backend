@@ -19,7 +19,7 @@ docker-package:
 	docker build . -t $(IMAGE_NAME)
 
 docker-gh-login:
-	echo $(GH_TOKEN) | docker login https://docker.pkg.github.com -u Gonzih --password-stdin
+	echo $(GH_TOKEN) | docker login https://ghcr.io -u $(GH_USERNAME) --password-stdin
 
 docker-push:
 	docker push $(IMAGE_NAME)
