@@ -58,11 +58,11 @@ case class VantageMeta(
     timeZone: String
 )
 case class VantageData(
-    open: Float,
-    high: Float,
-    low: Float,
-    close: Float,
-    volume: Float
+    open: Double,
+    high: Double,
+    low: Double,
+    close: Double,
+    volume: Double
 )
 
 trait Decoders {

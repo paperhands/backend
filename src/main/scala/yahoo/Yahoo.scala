@@ -1,6 +1,5 @@
 package app.paperhands.yahoo
 
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import sttp.client3._
 import sttp.model._
 
@@ -18,6 +17,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import net.ruippeixotog.scalascraper.dsl.DSL._
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
+import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
+
 object TimeParsing {
   def toInstant(in: String, zone: String) = {
     // 2021-03-01 20:00:00
@@ -32,77 +36,13 @@ object TimeParsing {
 }
 
 case class YahooResponse(
-    meta: YahooMeta,
-    timeSeries: Map[String, YahooData]
-) {
-  def toTimeSeries(symbol: String): List[model.TimeSeries] = {
-    timeSeries
-      .map { case (k, v) =>
-        model.TimeSeries(
-          symbol,
-          (v.open * 100.0).toInt,
-          TimeParsing.toInstant(k, meta.timeZone)
-        )
-      }
-      .toList
-      .reverse
-  }
-}
-
-case class YahooMeta(
-    information: String,
-    symbol: String,
-    lastRefreshed: String,
-    interval: String,
-    outputSize: String,
-    timeZone: String
-)
-case class YahooData(
-    open: Float,
-    high: Float,
-    low: Float,
-    close: Float,
-    volume: Float
+    price: Double
 )
 
-trait Decoders {
-  implicit val decodeYahooMeta: Decoder[YahooMeta] =
-    Decoder.forProduct6(
-      "1. Information",
-      "2. Symbol",
-      "3. Last Refreshed",
-      "4. Interval",
-      "5. Output Size",
-      "6. Time Zone"
-    )(
-      YahooMeta.apply
-    )
-
-  implicit val decodeYahooData: Decoder[YahooData] =
-    Decoder.forProduct5(
-      "1. open",
-      "2. high",
-      "3. low",
-      "4. close",
-      "5. volume"
-    )(
-      YahooData.apply
-    )
-
-  implicit val decodeYahooResponse: Decoder[YahooResponse] =
-    Decoder.forProduct2(
-      "Meta Data",
-      "Time Series (15min)"
-    )(
-      YahooResponse.apply
-    )
-}
-
-object Yahoo extends HttpBackend with Cfg with Decoders {
+object Yahoo extends HttpBackend with Cfg {
   val logger = Logger("vantage-api")
 
   val ua = "Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0"
-  val apiKey = cfg.vantage.api_key
 
   def mapTimeFrame(timeFrame: String) =
     timeFrame match {
@@ -111,8 +51,7 @@ object Yahoo extends HttpBackend with Cfg with Decoders {
     }
 
   def constructUri(
-      symbol: String,
-      timeFrame: String
+      symbol: String
   ) =
     uri"https://finance.yahoo.com/quote/$symbol"
 
@@ -121,27 +60,26 @@ object Yahoo extends HttpBackend with Cfg with Decoders {
   ) =
     basicRequest
       .header("User-Agent", ua)
-      .contentType("application/json")
+      .contentType("text/html")
       .get(uri)
 
-  def decodeResponseBody(uri: Uri, body: String): IO[YahooResponse] =
-    decode[YahooResponse](body) match {
-      case Right(r) => IO.pure(r)
-      case Left(e) =>
-        logger
-          .error(
-            s"could not parse vantage response: $e from $uri, body:\n$body"
-          )
-          .as(YahooResponse(YahooMeta("", "", "", "", "", ""), Map()))
-    }
+  val priceRe = "([0-9]+\\.[0-9]+)".r
+  def scrapeHTML(uri: Uri, body: String): IO[YahooResponse] = {
+    val browser = JsoupBrowser()
+    val doc = browser.parseString(body)
+    val txt = doc >> text("#quote-header-info")
+    val price = (priceRe.findFirstIn(txt) >>= (_.toDoubleOption)).getOrElse(0.0)
 
-  def priceData(symbol: String, period: String): IO[List[model.TimeSeries]] = {
-    val uri = constructUri(symbol, period)
+    IO(YahooResponse(price))
+  }
+
+  def scrape(symbol: String): IO[YahooResponse] = {
+    val uri = constructUri(symbol)
     val request = constructRequest(uri)
 
     backend.use { backend =>
       request.send(backend).map(_.body.getOrElse("")) >>= ((v: String) =>
-        decodeResponseBody(uri, v).map(_.toTimeSeries(symbol))
+        scrapeHTML(uri, v)
       )
     }
   }

@@ -115,7 +115,7 @@ object Popularity {}
 
 case class Trending(
     symbol: String,
-    popularity: Float
+    popularity: Double
 )
 
 case class TimeSeries(

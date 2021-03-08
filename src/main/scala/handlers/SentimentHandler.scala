@@ -37,7 +37,7 @@ import doobie.hikari.HikariTransactor
 case class QuoteTrending(
     symbol: String,
     desc: Option[String],
-    change_perc: Float,
+    change_perc: Double,
     pos: Int,
     old_pos: Int
 )
@@ -51,9 +51,9 @@ object QuoteTrending extends Market {
 
   def changePerc(
       symb: String,
-      popularity: Float,
+      popularity: Double,
       list: List[model.Trending]
-  ): Float = {
+  ): Double = {
     val oldPopularity = list
       .find(_.symbol == symb)
       .map(_.popularity)
