@@ -111,9 +111,9 @@ trait Reddit extends HttpBackend {
 
   def calculateSleep(endpoint: Endpoint, length: Int): IO[Unit] = {
     val duration = endpoint match {
-      case _ if length > 90 => 3.seconds
+      case _ if length > 80 => 3.seconds
       case Comments         => 15.seconds
-      case Posts            => 60.seconds
+      case Posts            => 120.seconds
     }
 
     logger.info(s"Sleeping for $duration for $endpoint") *>
