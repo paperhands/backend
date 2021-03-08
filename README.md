@@ -1,6 +1,6 @@
 ## Paperhands app backend codebase
 
-Watch [WSB tutorial](https://www.youtube.com/watch?v=c1s3Iekns9k)
+Watch [WSB tutorial](https://www.youtube.com/watch?v=c1s3Iekns9k) and [another one](https://www.youtube.com/watch?v=5xG09d3WcGo)
 
 ### Requirements
 * sbt
