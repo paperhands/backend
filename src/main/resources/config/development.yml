@@ -139,5 +139,6 @@ market:
     - RS
     - IQ
     - GO
+    - ANY
     # they mean robinhood by saying RH
     - RH
