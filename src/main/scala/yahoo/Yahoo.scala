@@ -40,7 +40,7 @@ case class YahooResponse(
 )
 
 object Yahoo extends HttpBackend with Cfg {
-  val logger = Logger("vantage-api")
+  val logger = Logger("yahoo")
 
   val ua = "Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0"
 
