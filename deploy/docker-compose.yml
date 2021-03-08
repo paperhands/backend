@@ -1,0 +1,12 @@
+version: "2.4"
+
+services:
+  paperhands-scraper:
+    image: "ghcr.io/paperhands/backend/app.paperhands:latest"
+    command: scrape
+    restart: always
+    environment:
+      - PAPERHANDS_ENV=production
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 2.0
