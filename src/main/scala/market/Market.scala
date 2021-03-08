@@ -43,7 +43,7 @@ object Market extends AddContextShift {
       .map(l => List(l.get(0), l.get(1)).sequence)
       .collect {
         case Some(List(s, d)) if s != "Symbol" =>
-          Ticket(s, d)
+          Ticket(s, cleanupDescription(d))
       }
       .compile
       .toList
