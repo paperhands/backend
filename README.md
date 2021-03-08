@@ -1,10 +1,17 @@
 ## Paperhands app backend codebase
 
+### Requirements
+* sbt
+* make
+* tesseract
+* docker
+
 ### Usage
 
+* bring compose up `make compose-reset` - this should fix permissions in docker folder
 * run migrations `make flyway-migrate`
-* run server `make run-server`
 * run scraper `make run-scrape`
+* run http server `make run-server`
 * dev auto restart:
   * `make sbt`
   * `~reStart server`
