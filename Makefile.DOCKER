@@ -1,4 +1,4 @@
-IMAGE_NAME = docker.pkg.github.com/paperhands/backend/app.paperhands:latest
+IMAGE_NAME = ghcr.io/paperhands/backend/app.paperhands:latest
 
 compose-up:
 	docker-compose -f docker/docker-compose.yml up -d
