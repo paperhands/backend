@@ -64,7 +64,6 @@ object Storage extends model.DoobieMetas {
       INSERT INTO
       content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
       VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now())
-      ON CONFLICT DO NOTHING
     """
     Update[model.Content](sql).run(entry)
   }
@@ -235,4 +234,16 @@ object Storage extends model.DoobieMetas {
     """
       .query[model.Content]
       .to[List]
+
+  def contentExists(
+      id: String
+  ): ConnectionIO[Boolean] =
+    sql"""
+      SELECT COUNT(1)
+      FROM content
+      WHERE id = $id
+    """
+      .query[Int]
+      .unique
+      .map(_ > 0)
 }

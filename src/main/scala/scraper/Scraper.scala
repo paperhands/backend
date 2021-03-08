@@ -62,11 +62,17 @@ object RedditScraper extends Reddit with Cfg with Market {
   def collectAllImageUrls(e: Entry): List[String] =
     e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
 
-  def handleEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
+  def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
     for {
       out <- processURLs(collectAllImageUrls(e))
-      _ <- handle(xa, e.focus(_.body).modify(v => s"$v$out"))
+      _ <- process(xa, e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
+
+  def handleEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
+    Storage
+      .contentExists(e.name)
+      .transact(xa)
+      .ifM(IO.unit, processEntry(xa, e))
 
   def sentTestFn(body: String, coll: List[String]): Boolean =
     coll.find(s => body.contains(s)).isDefined
@@ -146,7 +152,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       case None => IO(List())
     }
 
-  def handle(xa: HikariTransactor[IO], entry: Entry): IO[Unit] = {
+  def process(xa: HikariTransactor[IO], entry: Entry): IO[Unit] = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
