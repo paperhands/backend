@@ -151,6 +151,7 @@ object Handler extends Encoders with AddContextShift {
     val bucket = "15 minutes"
 
     for {
+      priceFiber <- Vantage.priceData(symbol, period).start
       mentions <- Storage
         .getMentionTimeseries(symbol, bucket, start, end)
         .transact(xa)
@@ -163,7 +164,7 @@ object Handler extends Encoders with AddContextShift {
       popularity <- Storage
         .getPopularityForInterval(symbol, start, end)
         .transact(xa)
-      price <- Vantage.priceData(symbol, period)
+      price <- priceFiber.join
     } yield (QuoteDetails
       .fromQueryResults(
         mentions,
