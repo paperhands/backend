@@ -101,12 +101,12 @@ object RedditScraper extends Reddit with Cfg with Market {
         val exceptionRe = s"(?is).*\\s+$s\\b.*".r
         val normalRe = s"(?is).*\\s*\\$$$s\\b.*".r
         val desperationRe = s"(?s).*\\b+$s\\b.*".r
-        // Logic here is if its an exception symbol just match for GME
-        // otherwise try to match for $GME
+        // Logic here is if its an exception symbol just match for GME/gme
+        // otherwise try to match for $GME or $gme
         // if this did not work make sure its not an exception
         // and length is greater than 1
-        // and match just GME but with \b as word bounds market
-        // and case sensitive
+        // then match just GME but with \b as word bounds market
+        // and case sensitive.
         // \b does not work at the end or beginning of string
         (isException(s) && exceptionRe.matches(body)) ||
         (normalRe.matches(body)) ||
