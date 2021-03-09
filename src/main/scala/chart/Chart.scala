@@ -31,7 +31,8 @@ object Chart {
     val total = max - min
     val step = total / limit
 
-    0.to(total)
+    min
+      .to(max)
       .by(step)
       .map(i => {
         val v = i + min
