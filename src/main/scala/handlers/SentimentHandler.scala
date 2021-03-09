@@ -165,7 +165,13 @@ object Handler extends Encoders with AddContextShift {
         .transact(xa)
       price <- Vantage.priceData(symbol, period)
     } yield (QuoteDetails
-      .fromQueryResults(mentions, engagements, sentiments, price, popularity))
+      .fromQueryResults(
+        mentions,
+        engagements,
+        sentiments,
+        price,
+        popularity
+      ))
   }
 
   def getSampleContent(
