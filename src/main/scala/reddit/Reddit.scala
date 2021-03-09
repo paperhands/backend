@@ -89,12 +89,12 @@ trait Reddit extends HttpBackend {
   // but pretty minimal one
   def updateState(
       items: Either[Throwable, List[Entry]],
-      state: List[String]
-  ): List[String] =
+      state: Option[String]
+  ): Option[String] =
     items match {
-      case Right(items) if items.length == 0 => state.drop(1)
-      case Right(items)                      => items.map(_.name) ++ state
-      case Left(_)                           => state.drop(1)
+      case Right(items) if items.length == 0 => None
+      case Right(items)                      => items.map(_.name).headOption
+      case Left(_)                           => None
     }
 
   def handleItems(
@@ -125,17 +125,15 @@ trait Reddit extends HttpBackend {
       endpoint: Endpoint,
       secret: String,
       username: String,
-      initialState: List[String]
+      initialState: Option[String]
   ): IO[Unit] =
-    initialState.iterateForeverM { state =>
-      val before = state.headOption
-
+    initialState.iterateForeverM { before =>
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, items)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
-      } yield (updateState(items, state).take(500))
+      } yield (updateState(items, before))
     }
 
   def loop(
@@ -143,8 +141,8 @@ trait Reddit extends HttpBackend {
       secret: String,
       username: String
   ): IO[Unit] = {
-    val commIO = startLoopFor(xa, Comments, secret, username, List())
-    val postIO = startLoopFor(xa, Posts, secret, username, List())
+    val commIO = startLoopFor(xa, Comments, secret, username, None)
+    val postIO = startLoopFor(xa, Posts, secret, username, None)
 
     for {
       fc <- commIO.start
