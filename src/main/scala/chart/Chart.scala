@@ -24,14 +24,15 @@ object Chart {
     df.format(Date.from(t))
   }
 
-  def includeLabel(i: Int, limit: Int, totalNum: Int): Boolean =
-    i == totalNum - 1 || i == 0 || (0 < i && i % (totalNum / limit) == 0 && i < totalNum)
+  def includeLabel(i: Int, limit: Int, max: Int): Boolean =
+    0.to(max - 1).by(max / limit).contains(i)
 
   def getYLabels(min: Int, limit: Int, max: Int) = {
     val total = max - min
+    val step = total / limit
 
     0.to(total)
-      .by(total / limit)
+      .by(step)
       .map(i => {
         val v = i + min
         v -> v.toString
@@ -43,7 +44,7 @@ object Chart {
     val maxX = input.length
     val minX = 0
 
-    val maxY = input.map(_.value).maxOption.getOrElse(10)
+    val maxY = input.map(_.value).maxOption.getOrElse(1000)
     val minY = input.map(_.value).minOption.getOrElse(0)
 
     val yTitles = getYLabels(minY, 5, maxY)
