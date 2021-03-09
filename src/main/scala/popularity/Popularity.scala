@@ -5,7 +5,7 @@ import app.paperhands.model
 case class PopularityResponse(
     symbol: String,
     mentions: Int,
-    users: Int
+    engagements: Int
 )
 
 object Popularity {
