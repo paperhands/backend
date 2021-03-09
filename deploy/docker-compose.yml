@@ -12,18 +12,15 @@ services:
     cpus: 2.0
 
   grafana:
-    image: grafana/grafana
-    depends_on:
-      - timescale
-      # - postgres
+    image: grafana/grafana:7.4.3
     ports:
       - 3000:3000
     mem_limit: 512m
     memswap_limit: 512m
-    cpus: 2.0
+    cpus: 1.0
     volumes:
-      - /var/lib/grafana:/var/lib/grafana
-      - /etc/grafana/provisioning:/etc/grafana/provisioning/
+      - /storage/grafana/main:/var/lib/grafana
+      - /storage/grafana/provisioning:/etc/grafana/provisioning/
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
