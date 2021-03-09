@@ -11,29 +11,10 @@ import app.paperhands.model
 import app.paperhands.config.Cfg
 import app.paperhands.io.{Logger, HttpBackend}
 
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
 import net.ruippeixotog.scalascraper.browser.JsoupBrowser
 import net.ruippeixotog.scalascraper.dsl.DSL._
 import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
 import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
-
-object TimeParsing {
-  def toInstant(in: String, zone: String) = {
-    // 2021-03-01 20:00:00
-    LocalDateTime
-      .parse(
-        in,
-        DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US)
-      )
-      .atZone(ZoneId.of(zone))
-      .toInstant
-  }
-}
 
 case class YahooResponse(
     price: Double

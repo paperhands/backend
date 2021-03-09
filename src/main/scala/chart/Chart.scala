@@ -1,10 +1,7 @@
 package app.paperhands.chart
 
 import app.paperhands.model
-
-import java.text.SimpleDateFormat
-import java.time.Instant
-import java.util.Date
+import app.paperhands.format.Format
 
 case class Spot(x: Int, y: Int)
 
@@ -19,11 +16,6 @@ case class ChartResponse(
 )
 
 object Chart {
-  def formatTime(t: Instant) = {
-    val df = new SimpleDateFormat("HH:mm")
-    df.format(Date.from(t))
-  }
-
   def includeLabel(i: Int, limit: Int, max: Int): Boolean =
     0.to(max - 1).by(max / limit).contains(i)
 
@@ -59,7 +51,7 @@ object Chart {
         includeLabel(index, 5, input.length)
       }
       .map { case (v, index) =>
-        index -> formatTime(v.time)
+        index -> Format.HHmm(v.time)
       }
       .toMap
 
