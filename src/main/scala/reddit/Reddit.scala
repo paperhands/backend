@@ -11,6 +11,7 @@ import sttp.client3.http4s._
 import cats._
 import cats.effect._
 import cats.implicits._
+import cats.effect.concurrent.Ref
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -97,14 +98,18 @@ trait Reddit extends HttpBackend {
       case Left(_)                           => state.drop(1)
     }
 
+  def addItemsToQueue(items: List[Entry], queue: Ref[IO, List[Entry]]) =
+    queue.update(l => l ++ items)
+
   def handleItems(
       xa: HikariTransactor[IO],
-      items: Either[Throwable, List[Entry]]
+      items: Either[Throwable, List[Entry]],
+      queue: Ref[IO, List[Entry]]
   ): IO[Unit] = {
     items match {
       case Right(items) =>
-        logger.info(s"running handleEntry on ${items.length} items") *>
-          items.traverse(entry => handleEntry(xa, entry)).void
+        logger.info(s"Adding ${items.length} entries to the queue") *>
+          addItemsToQueue(items, queue)
       case Left(_) => IO()
     }
   }
@@ -129,7 +134,8 @@ trait Reddit extends HttpBackend {
       endpoint: Endpoint,
       secret: String,
       username: String,
-      initialState: List[String]
+      initialState: List[String],
+      queue: Ref[IO, List[Entry]]
   ): IO[Unit] =
     initialState.iterateForeverM { state =>
       val before = state.headOption
@@ -137,26 +143,48 @@ trait Reddit extends HttpBackend {
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
-        _ <- handleItems(xa, items)
+        _ <- handleItems(xa, items, queue)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
       } yield (updateState(items, state).take(10))
     }
+
+  def handle(xa: HikariTransactor[IO], e: Option[Entry]): IO[Unit] =
+    e match {
+      case Some(entry) => handleEntry(xa, entry)
+      case None        => IO.unit
+    }
+
+  def handleLoop(
+      xa: HikariTransactor[IO],
+      queue: Ref[IO, List[Entry]]
+  ): IO[Unit] =
+    for {
+      list <- queue.getAndUpdate(l => l.drop(1))
+      _ <- IO
+        .pure(list.length > 1000)
+        .ifM(
+          logger.warn(
+            s"We have ${list.length} entries left to be processed in the queue"
+          ),
+          IO.unit
+        )
+      _ <- handle(xa, list.headOption)
+    } yield ()
 
   def loop(
       xa: HikariTransactor[IO],
       secret: String,
       username: String
-  ): IO[Unit] = {
-    val commIO = startLoopFor(xa, Comments, secret, username, List())
-    val postIO = startLoopFor(xa, Posts, secret, username, List())
-
+  ): IO[Unit] =
     for {
-      fc <- commIO.start
-      fp <- postIO.start
+      state <- Ref.of[IO, List[Entry]](List())
+      fc <- startLoopFor(xa, Comments, secret, username, List(), state).start
+      fp <- startLoopFor(xa, Posts, secret, username, List(), state).start
+      fh <- handleLoop(xa, state).foreverM.start
       _ <- fc.join
       _ <- fp.join
+      _ <- fh.join
     } yield ()
-  }
 }
 
 sealed trait RedditJsonCodec
