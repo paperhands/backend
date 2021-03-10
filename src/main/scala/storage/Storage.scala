@@ -246,4 +246,26 @@ object Storage extends model.DoobieMetas {
       .query[Int]
       .unique
       .map(_ > 0)
+
+  def saveOcrCache(
+      entry: model.OcrCache
+  ): ConnectionIO[Int] = {
+    val sql = """
+      INSERT INTO
+      ocr_cache(url, output, created_time)
+      VALUES(?, ?, now())
+    """
+    Update[model.OcrCache](sql).run(entry)
+  }
+
+  def getOcrCache(
+      url: String
+  ): ConnectionIO[Option[model.OcrCache]] =
+    sql"""
+      SELECT COUNT(1)
+      FROM ocr_cache
+      WHERE url = $url
+    """
+      .query[model.OcrCache]
+      .option
 }

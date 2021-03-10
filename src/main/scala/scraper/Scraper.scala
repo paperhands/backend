@@ -34,7 +34,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
   )
 
-  def processURL(url: String): IO[String] =
+  def runOcrAndSaveResult(xa: HikariTransactor[IO], url: String) =
     for {
       out <- OCR
         .processURL(url)
@@ -43,11 +43,21 @@ object RedditScraper extends Reddit with Cfg with Market {
             _ <- logger.error(s"Error processing $url with OCR: $e")
           } yield ("")
         )
+      _ <- Storage.saveOcrCache(model.OcrCache(url, out)).transact(xa)
+    } yield (out)
+
+  def processURL(xa: HikariTransactor[IO], url: String): IO[String] =
+    for {
+      ocrCache <- Storage.getOcrCache(url).transact(xa)
+      out <- ocrCache match {
+        case Some(cache) => IO.pure(cache.output)
+        case None        => runOcrAndSaveResult(xa, url)
+      }
     } yield (s"\n$url:\n$out")
 
-  def processURLs(urls: List[String]): IO[String] =
+  def processURLs(xa: HikariTransactor[IO], urls: List[String]): IO[String] =
     for {
-      url <- urls.traverse(processURL)
+      url <- urls.traverse(processURL(xa, _))
     } yield (url.mkString(""))
 
   def isImageURL(url: String): Boolean =
@@ -64,7 +74,7 @@ object RedditScraper extends Reddit with Cfg with Market {
 
   def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
     for {
-      out <- processURLs(collectAllImageUrls(e))
+      out <- processURLs(xa, collectAllImageUrls(e))
       _ <- process(xa, e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 

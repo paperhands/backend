@@ -129,3 +129,8 @@ case class Popularity(
     mentions: Int,
     engagements: Int
 )
+
+case class OcrCache(
+    url: String,
+    output: String
+)
