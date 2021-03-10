@@ -121,8 +121,8 @@ trait Reddit extends HttpBackend {
       // so solution would be to start from scratch as quickly as possible
       case Comments if length > 99 || length == 0 => 2.seconds
       case Posts if length > 99                   => 10.seconds
-      case _ if length > 70                       => 4.seconds
-      case Comments                               => 15.seconds
+      case _ if length > 70                       => 3.seconds
+      case Comments                               => 4.seconds
       case Posts                                  => 120.seconds
     }
 
