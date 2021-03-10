@@ -129,7 +129,7 @@ trait Reddit extends HttpBackend {
       IO.sleep(duration)
   }
 
-  def startLoopFor(
+  def producerFor(
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
       secret: String,
@@ -154,7 +154,7 @@ trait Reddit extends HttpBackend {
       case None        => IO.unit
     }
 
-  def handleLoop(
+  def consumerFor(
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
       queue: Ref[IO, List[Entry]]
@@ -180,8 +180,8 @@ trait Reddit extends HttpBackend {
   ): IO[Unit] =
     for {
       state <- Ref.of[IO, List[Entry]](List())
-      f <- startLoopFor(xa, endpoint, secret, username, List(), state).start
-      fh <- handleLoop(xa, endpoint, state).foreverM.start
+      f <- producerFor(xa, endpoint, secret, username, List(), state).start
+      fh <- consumerFor(xa, endpoint, state).foreverM.start
       _ <- f.join
       _ <- fh.join
     } yield ()
