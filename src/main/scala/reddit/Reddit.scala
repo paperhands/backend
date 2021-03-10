@@ -155,8 +155,8 @@ trait Reddit extends HttpBackend {
     }
 
   def handleLoop(
-      endpoint: Endpoint,
       xa: HikariTransactor[IO],
+      endpoint: Endpoint,
       queue: Ref[IO, List[Entry]]
   ): IO[Unit] =
     for {
@@ -172,36 +172,30 @@ trait Reddit extends HttpBackend {
       _ <- handle(xa, list.headOption)
     } yield ()
 
+  def produceAndConsume(
+      xa: HikariTransactor[IO],
+      endpoint: Endpoint,
+      secret: String,
+      username: String
+  ): IO[Unit] =
+    for {
+      state <- Ref.of[IO, List[Entry]](List())
+      f <- startLoopFor(xa, endpoint, secret, username, List(), state).start
+      fh <- handleLoop(xa, endpoint, state).foreverM.start
+      _ <- f.join
+      _ <- fh.join
+    } yield ()
+
   def loop(
       xa: HikariTransactor[IO],
       secret: String,
       username: String
   ): IO[Unit] =
     for {
-      commState <- Ref.of[IO, List[Entry]](List())
-      postState <- Ref.of[IO, List[Entry]](List())
-      fc <- startLoopFor(
-        xa,
-        Comments,
-        secret,
-        username,
-        List(),
-        commState
-      ).start
-      fp <- startLoopFor(
-        xa,
-        Posts,
-        secret,
-        username,
-        List(),
-        postState
-      ).start
-      fhc <- handleLoop(Comments, xa, commState).foreverM.start
-      fhp <- handleLoop(Posts, xa, postState).foreverM.start
+      fp <- produceAndConsume(xa, Posts, secret, username).start
+      fc <- produceAndConsume(xa, Comments, secret, username).start
       _ <- fc.join
       _ <- fp.join
-      _ <- fhc.join
-      _ <- fhp.join
     } yield ()
 }
 

@@ -1,7 +1,7 @@
 reddit:
   secret: oCRNjkzXCyqWhwCYq9W2JwHhzGEoNQ
   username: Honest_Macaroon_190
-  thread_pool: 2
+  thread_pool: 4
 
 http:
   port: 8888

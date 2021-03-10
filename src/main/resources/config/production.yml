@@ -1,7 +1,7 @@
 reddit:
   secret: c1PyjStqy4XJ1w
   username: coderats
-  thread_pool: 2
+  thread_pool: 4
 
 http:
   port: 8888
