@@ -11,6 +11,6 @@ object VantageTestSuite extends IOTestSuite {
   test("get GME price") {
     for {
       output <- Vantage.priceData("GME", "1day")
-    } yield (assert(output.length > 1000))
+    } yield assert(output.length > 1000)
   }
 }

@@ -41,10 +41,10 @@ object RedditScraper extends Reddit with Cfg with Market {
         .handleErrorWith(e =>
           for {
             _ <- logger.error(s"Error processing $url with OCR: $e")
-          } yield ("")
+          } yield ""
         )
       _ <- Storage.saveOcrCache(model.OcrCache(url, out)).transact(xa)
-    } yield (out)
+    } yield out
 
   def processURL(xa: HikariTransactor[IO], url: String): IO[String] =
     for {
@@ -53,12 +53,12 @@ object RedditScraper extends Reddit with Cfg with Market {
         case Some(cache) => IO.pure(cache.output)
         case None        => runOcrAndSaveResult(xa, url)
       }
-    } yield (s"\n$url:\n$out")
+    } yield s"\n$url:\n$out"
 
   def processURLs(xa: HikariTransactor[IO], urls: List[String]): IO[String] =
     for {
       url <- urls.traverse(processURL(xa, _))
-    } yield (url.mkString(""))
+    } yield url.mkString("")
 
   def isImageURL(url: String): Boolean =
     imgPattern.matches(url)
@@ -158,7 +158,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       case Some(id) =>
         for {
           tree <- Storage.getParsedTree(id).transact(xa)
-        } yield (symbolsFromTree(tree))
+        } yield symbolsFromTree(tree)
       case None => IO(List())
     }
 

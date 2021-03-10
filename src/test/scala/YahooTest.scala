@@ -11,6 +11,6 @@ object YahooTestSuite extends IOTestSuite {
   test("get GME price") {
     for {
       output <- Yahoo.scrape("GME")
-    } yield (assert(output.price > 1.0))
+    } yield assert(output.price > 1.0)
   }
 }

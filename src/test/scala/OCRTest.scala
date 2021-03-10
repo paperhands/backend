@@ -15,7 +15,7 @@ object OCRTestSuite extends IOTestSuite {
 
     for {
       output <- OCR.processFile(path)
-    } yield (assert(output.contains("GME")))
+    } yield assert(output.contains("GME"))
   }
 
   test("process url") {
@@ -24,6 +24,6 @@ object OCRTestSuite extends IOTestSuite {
 
     for {
       output <- OCR.processURL(url)
-    } yield (assert(output.contains("[Automated]")))
+    } yield assert(output.contains("[Automated]"))
   }
 }

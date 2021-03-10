@@ -68,14 +68,14 @@ trait Reddit extends HttpBackend {
           response <- request.send(backend)
           body <- IO(response.body.getOrElse(""))
           result <- IO(decode[RedditListing](body).map(Entry.fromListing(_)))
-        } yield (result)
+        } yield result
       }
       .handleErrorWith(e =>
         for {
           _ <- logger.error(
             s"Error querying reddit $url: $e\n${e.getStackTrace.mkString("\n")}"
           )
-        } yield (Left(e))
+        } yield Left(e)
       )
   }
 
@@ -146,7 +146,7 @@ trait Reddit extends HttpBackend {
         items <- loadItems(endpoint, secret, username, before)
         _ <- handleItems(xa, endpoint, items, queue)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
-      } yield (updateState(items, state).take(10))
+      } yield updateState(items, state).take(10)
     }
 
   def handle(xa: HikariTransactor[IO], e: Option[Entry]): IO[Unit] =

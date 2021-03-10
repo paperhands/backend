@@ -134,7 +134,7 @@ object Handler extends Encoders with AddContextShift {
       present <- Storage
         .getTrending(start, end, 30)
         .transact(xa)
-    } yield (QuoteTrending.fromTrending(previous, present).take(10))
+    } yield QuoteTrending.fromTrending(previous, present).take(10)
   }
 
   def getDetails(
@@ -165,14 +165,14 @@ object Handler extends Encoders with AddContextShift {
         .getPopularityForInterval(symbol, start, end)
         .transact(xa)
       price <- priceFiber.join
-    } yield (QuoteDetails
+    } yield QuoteDetails
       .fromQueryResults(
         mentions,
         engagements,
         sentiments,
         price,
         popularity
-      ))
+      )
   }
 
   def getSampleContent(
