@@ -103,12 +103,13 @@ trait Reddit extends HttpBackend {
 
   def handleItems(
       xa: HikariTransactor[IO],
+      endpoint: Endpoint,
       items: Either[Throwable, List[Entry]],
       queue: Ref[IO, List[Entry]]
   ): IO[Unit] = {
     items match {
       case Right(items) =>
-        logger.info(s"Adding ${items.length} entries to the queue") *>
+        logger.info(s"Adding ${items.length} entries to the $endpoint queue") *>
           addItemsToQueue(items, queue)
       case Left(_) => IO()
     }
@@ -143,7 +144,7 @@ trait Reddit extends HttpBackend {
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
-        _ <- handleItems(xa, items, queue)
+        _ <- handleItems(xa, endpoint, items, queue)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
       } yield (updateState(items, state).take(10))
     }
