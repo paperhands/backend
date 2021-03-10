@@ -163,6 +163,9 @@ trait Reddit extends HttpBackend {
     for {
       list <- queue.getAndUpdate(l => l.drop(1))
       _ <- IO
+        .pure(list.length == 0 && endpoint == Posts)
+        .ifM(IO.sleep(30.second), IO.unit)
+      _ <- IO
         .pure(list.length > 1000)
         .ifM(
           logger.warn(
