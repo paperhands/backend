@@ -142,5 +142,7 @@ market:
     - RS
     - IQ
     - GO
+    - ANY
+    - LOVE
     # they mean robinhood by saying RH
     - RH
