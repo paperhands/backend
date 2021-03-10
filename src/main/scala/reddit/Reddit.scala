@@ -155,6 +155,7 @@ trait Reddit extends HttpBackend {
     }
 
   def handleLoop(
+      endpoint: Endpoint,
       xa: HikariTransactor[IO],
       queue: Ref[IO, List[Entry]]
   ): IO[Unit] =
@@ -164,7 +165,7 @@ trait Reddit extends HttpBackend {
         .pure(list.length > 1000)
         .ifM(
           logger.warn(
-            s"We have ${list.length} entries left to be processed in the queue"
+            s"We have ${list.length} entries left to be processed in the $endpoint queue"
           ),
           IO.unit
         )
@@ -177,13 +178,30 @@ trait Reddit extends HttpBackend {
       username: String
   ): IO[Unit] =
     for {
-      state <- Ref.of[IO, List[Entry]](List())
-      fc <- startLoopFor(xa, Comments, secret, username, List(), state).start
-      fp <- startLoopFor(xa, Posts, secret, username, List(), state).start
-      fh <- handleLoop(xa, state).foreverM.start
+      commState <- Ref.of[IO, List[Entry]](List())
+      postState <- Ref.of[IO, List[Entry]](List())
+      fc <- startLoopFor(
+        xa,
+        Comments,
+        secret,
+        username,
+        List(),
+        commState
+      ).start
+      fp <- startLoopFor(
+        xa,
+        Posts,
+        secret,
+        username,
+        List(),
+        postState
+      ).start
+      fhc <- handleLoop(Comments, xa, commState).foreverM.start
+      fhp <- handleLoop(Posts, xa, postState).foreverM.start
       _ <- fc.join
       _ <- fp.join
-      _ <- fh.join
+      _ <- fhc.join
+      _ <- fhp.join
     } yield ()
 }
 
