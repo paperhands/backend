@@ -262,7 +262,7 @@ object Storage extends model.DoobieMetas {
       url: String
   ): ConnectionIO[Option[model.OcrCache]] =
     sql"""
-      SELECT COUNT(1)
+      SELECT url, output
       FROM ocr_cache
       WHERE url = $url
     """

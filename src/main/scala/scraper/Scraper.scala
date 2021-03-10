@@ -34,7 +34,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
   )
 
-  def runOcrAndSaveResult(xa: HikariTransactor[IO], url: String) =
+  def runOcrAndSaveResult(xa: HikariTransactor[IO], url: String): IO[String] =
     for {
       out <- OCR
         .processURL(url)
