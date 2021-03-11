@@ -8,38 +8,28 @@ import cats.effect.concurrent._
 import scala.concurrent._
 
 // Unbound channel implementation
-// Uses MVar for locking if chan is empty
-final class Chan[A](ref: Ref[IO, Vector[A]], mvar: MVar2[IO, Unit]) {
+final class Chan[A](ref: Ref[IO, Int], mvar: MVar2[IO, A]) {
   implicit val cs: ContextShift[IO] =
     IO.contextShift(ExecutionContext.Implicits.global)
 
   // Take head value from Chan
-  // if len == 0 block using MVar
-  def take: IO[Option[A]] =
-    for {
-      _ <- mvar.take
-      head <- ref.getAndUpdate(_.drop(1)).map(_.headOption)
-    } yield head
+  def take: IO[A] =
+    mvar.take <*
+      ref.update(_ - 1)
 
   // Put single item onto a chan
-  // Always unblocks MVar
   def put(i: A): IO[Unit] =
-    for {
-      _ <- ref.update(_ :+ i)
-      _ <- mvar.put(()).start
-    } yield ()
+    ref.update(_ + 1) *>
+      mvar.put(i).start.void
 
   // Put multiple items onto a chan
-  // Always unblocks MVar
   def append(is: Seq[A]): IO[Unit] =
-    for {
-      _ <- ref.update(_ ++ is)
-      _ <- mvar.put(()).replicateA(is.length).start
-    } yield ()
+    ref.update(_ + is.length) *>
+      is.traverse(mvar.put(_)).start.void
 
-  // Lookup length of underlying Ref with Vector
+  // Lookup length
   def length: IO[Int] =
-    ref.get.map(_.length)
+    ref.get
 }
 
 object Chan {
@@ -48,8 +38,7 @@ object Chan {
 
   def apply[A](): IO[Chan[A]] =
     for {
-      ref <- Ref.of[IO, Vector[A]](Vector())
-      mvar <- MVar.of[IO, Unit](())
-      _ <- mvar.take
+      ref <- Ref.of[IO, Int](0)
+      mvar <- MVar.empty[IO, A]
     } yield new Chan[A](ref, mvar)
 }

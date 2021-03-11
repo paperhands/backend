@@ -150,19 +150,13 @@ trait Reddit extends HttpBackend {
       } yield updateState(items, state).take(10)
     }
 
-  def handle(xa: HikariTransactor[IO], e: Option[Entry]): IO[Unit] =
-    e match {
-      case Some(entry) => handleEntry(xa, entry)
-      case None        => IO.unit
-    }
-
   def consumerFor(
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
       chan: Chan[Entry]
   ): IO[Unit] =
     for {
-      head <- chan.take
+      v <- chan.take
       len <- chan.length
       _ <- IO
         .pure(len > 1000)
@@ -172,7 +166,7 @@ trait Reddit extends HttpBackend {
           ),
           IO.unit
         )
-      _ <- handle(xa, head)
+      _ <- handleEntry(xa, v)
     } yield ()
 
   def produceAndConsume(
