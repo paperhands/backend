@@ -172,7 +172,8 @@ trait Reddit extends HttpBackend {
           ),
           IO.unit
         )
-    } yield handle(xa, head)
+      _ <- handle(xa, head)
+    } yield ()
 
   def produceAndConsume(
       xa: HikariTransactor[IO],
