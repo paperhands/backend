@@ -9,6 +9,23 @@ import java.util.concurrent.TimeoutException
 
 object ConcurrentTestSuite extends IOTestSuite {
   override val timeout = 10.seconds
+  test("put/take works correctly") {
+    for {
+      chan <- Chan[Int]()
+      _ <- chan.put(1)
+      v <- chan.take
+    } yield assertEquals(v, 1)
+  }
+
+  test("append/take works correctly") {
+    for {
+      chan <- Chan[Int]()
+      _ <- chan.append(List.range(0, 100))
+      _ <- chan.take.replicateA(21)
+      v <- chan.take
+    } yield assertEquals(v, 21)
+  }
+
   test("len works connectly") {
     for {
       chan <- Chan[Int]()
