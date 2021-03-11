@@ -17,6 +17,7 @@ import scala.concurrent._
 import scala.concurrent.duration._
 
 import app.paperhands.io.{Logger, HttpBackend}
+import app.paperhands.concurrent._
 
 import doobie.hikari.HikariTransactor
 
@@ -98,19 +99,19 @@ trait Reddit extends HttpBackend {
       case Left(_)                           => state.drop(1)
     }
 
-  def addItemsToQueue(items: List[Entry], queue: Ref[IO, List[Entry]]) =
-    queue.update(l => l ++ items)
+  def addItemsToQueue(items: Vector[Entry], chan: Chan[Entry]) =
+    chan.append(items)
 
   def handleItems(
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
       items: Either[Throwable, List[Entry]],
-      queue: Ref[IO, List[Entry]]
+      chan: Chan[Entry]
   ): IO[Unit] = {
     items match {
       case Right(items) =>
-        logger.info(s"Adding ${items.length} entries to the $endpoint queue") *>
-          addItemsToQueue(items, queue)
+        logger.info(s"Adding ${items.length} entries to the $endpoint chan") *>
+          addItemsToQueue(items.toVector, chan)
       case Left(_) => IO()
     }
   }
@@ -136,7 +137,7 @@ trait Reddit extends HttpBackend {
       secret: String,
       username: String,
       initialState: List[String],
-      queue: Ref[IO, List[Entry]]
+      chan: Chan[Entry]
   ): IO[Unit] =
     initialState.iterateForeverM { state =>
       val before = state.headOption
@@ -144,7 +145,7 @@ trait Reddit extends HttpBackend {
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
-        _ <- handleItems(xa, endpoint, items, queue)
+        _ <- handleItems(xa, endpoint, items, chan)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
       } yield updateState(items, state).take(10)
     }
@@ -158,22 +159,23 @@ trait Reddit extends HttpBackend {
   def consumerFor(
       xa: HikariTransactor[IO],
       endpoint: Endpoint,
-      queue: Ref[IO, List[Entry]]
+      chan: Chan[Entry]
   ): IO[Unit] =
     for {
-      list <- queue.getAndUpdate(l => l.drop(1))
+      len <- chan.length
       _ <- IO
-        .pure(list.length == 0 && endpoint == Posts)
+        .pure(len == 0 && endpoint == Posts)
         .ifM(IO.sleep(5.seconds), IO.unit)
       _ <- IO
-        .pure(list.length > 1000)
+        .pure(len > 1000)
         .ifM(
           logger.warn(
-            s"We have ${list.length} entries left to be processed in the $endpoint queue"
+            s"We have $len entries left to be processed in the $endpoint chan"
           ),
           IO.unit
         )
-      _ <- handle(xa, list.headOption)
+      head <- chan.take
+      _ <- handle(xa, head)
     } yield ()
 
   def produceAndConsume(
@@ -183,7 +185,7 @@ trait Reddit extends HttpBackend {
       username: String
   ): IO[Unit] =
     for {
-      state <- Ref.of[IO, List[Entry]](List())
+      state <- Chan[Entry]()
       f <- producerFor(xa, endpoint, secret, username, List(), state).start
       fh <- consumerFor(xa, endpoint, state).foreverM.start
       _ <- f.join
