@@ -10,13 +10,14 @@ import scala.concurrent._
 // Unbound channel implementation
 // Uses MVar for locking if chan is empty
 final class Chan[A](ref: Ref[IO, Vector[A]], mvar: MVar2[IO, Unit]) {
+  implicit val cs: ContextShift[IO] =
+    IO.contextShift(ExecutionContext.Implicits.global)
+
   // Take head value from Chan
   // if len == 0 block using MVar
   def take: IO[Option[A]] =
     for {
-      len <- length
-      _ <- mvar.tryTake
-      _ <- IO.pure(len == 0).ifM(mvar.take, IO.unit)
+      _ <- mvar.take
       head <- ref.getAndUpdate(_.drop(1)).map(_.headOption)
     } yield head
 
@@ -25,7 +26,7 @@ final class Chan[A](ref: Ref[IO, Vector[A]], mvar: MVar2[IO, Unit]) {
   def put(i: A): IO[Unit] =
     for {
       _ <- ref.update(_ :+ i)
-      _ <- mvar.tryPut(())
+      _ <- mvar.put(()).start
     } yield ()
 
   // Put multiple items onto a chan
@@ -33,7 +34,7 @@ final class Chan[A](ref: Ref[IO, Vector[A]], mvar: MVar2[IO, Unit]) {
   def append(is: Seq[A]): IO[Unit] =
     for {
       _ <- ref.update(_ ++ is)
-      _ <- mvar.tryPut(())
+      _ <- mvar.put(()).replicateA(is.length).start
     } yield ()
 
   // Lookup length of underlying Ref with Vector
