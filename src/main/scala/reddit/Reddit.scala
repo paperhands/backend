@@ -162,10 +162,8 @@ trait Reddit extends HttpBackend {
       chan: Chan[Entry]
   ): IO[Unit] =
     for {
+      head <- chan.take
       len <- chan.length
-      _ <- IO
-        .pure(len == 0 && endpoint == Posts)
-        .ifM(IO.sleep(5.seconds), IO.unit)
       _ <- IO
         .pure(len > 1000)
         .ifM(
@@ -174,9 +172,7 @@ trait Reddit extends HttpBackend {
           ),
           IO.unit
         )
-      head <- chan.take
-      _ <- handle(xa, head)
-    } yield ()
+    } yield handle(xa, head)
 
   def produceAndConsume(
       xa: HikariTransactor[IO],
