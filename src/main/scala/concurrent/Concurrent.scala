@@ -15,6 +15,7 @@ final class Chan[A](ref: Ref[IO, Vector[A]], mvar: MVar2[IO, Unit]) {
   def take: IO[Option[A]] =
     for {
       len <- length
+      _ <- mvar.tryTake
       _ <- IO.pure(len == 0).ifM(mvar.take, IO.unit)
       head <- ref.getAndUpdate(_.drop(1)).map(_.headOption)
     } yield head
