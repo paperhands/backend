@@ -7,8 +7,9 @@ import cats.effect.testing.minitest.{IOTestSuite, DeterministicIOTestSuite}
 import app.paperhands.concurrent._
 import java.util.concurrent.TimeoutException
 
-object ConcurrentTestSuite extends IOTestSuite {
+object ConcurrentChanTestSuite extends IOTestSuite {
   override val timeout = 10.seconds
+
   test("put/take works correctly") {
     for {
       chan <- Chan[Int]()
