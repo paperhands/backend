@@ -12,19 +12,22 @@ import fs2.io.file._
 import fs2.data.csv._
 import java.nio.file.{Files, Paths}
 
+import app.paperhands.config.Cfg
 import app.paperhands.io.Logger
 import app.paperhands.io.AddContextShift
 
 case class Ticket(
     symbol: String,
-    desc: String
+    desc: String,
+    isException: Boolean,
+    isIgnored: Boolean
 )
 
 trait Market {
   val market: List[Ticket] = Market.market
 }
 
-object Market extends AddContextShift {
+object Market extends AddContextShift with Cfg {
   val logger = Logger("market-data")
 
   val files = List("nasdaqlisted.txt", "otherlisted.txt", "custom.txt")
@@ -36,6 +39,12 @@ object Market extends AddContextShift {
       re.replaceAllIn(desc, "")
     }
 
+  def isException(symb: String): Boolean =
+    cfg.market.exceptions.find(_ == symb).isDefined
+
+  def isIgnored(symb: String): Boolean =
+    cfg.market.ignores.find(_ == symb).isDefined
+
   def parseCsv(csv: String) =
     Stream
       .emits(csv)
@@ -43,7 +52,7 @@ object Market extends AddContextShift {
       .map(l => List(l.get(0), l.get(1)).sequence)
       .collect {
         case Some(List(s, d)) if s != "Symbol" =>
-          Ticket(s, cleanupDescription(d))
+          Ticket(s, cleanupDescription(d), isException(s), isIgnored(s))
       }
       .compile
       .toList

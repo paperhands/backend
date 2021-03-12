@@ -98,16 +98,10 @@ object RedditScraper extends Reddit with Cfg with Market {
       case (false, false) => model.Unknown()
     }
 
-  def isException(symb: String): Boolean =
-    cfg.market.exceptions.find(_ == symb).isDefined
-
-  def isIgnored(symb: String): Boolean =
-    cfg.market.ignores.find(_ == symb).isDefined
-
-  val marketSymbols = market.map(_.symbol)
   def getSymbols(body: String): List[String] =
-    marketSymbols
-      .filter(s => {
+    market
+      .filter(e => {
+        val s = e.symbol
         val exceptionRe = s"(?is).*\\s+$s\\b.*".r
         val normalRe = s"(?is).*\\s*\\$$$s\\b.*".r
         val desperationRe = s"(?s).*\\b+$s\\b.*".r
@@ -118,12 +112,13 @@ object RedditScraper extends Reddit with Cfg with Market {
         // then match just GME but with \b as word bounds market
         // and case sensitive.
         // \b does not work at the end or beginning of string
-        (isException(s) && exceptionRe.matches(body)) ||
+        (e.isException && exceptionRe.matches(body)) ||
         (normalRe.matches(body)) ||
-        (!isIgnored(s) &&
+        (!e.isIgnored &&
           s.length() > 1 &&
           desperationRe.matches(body))
       })
+      .map(_.symbol)
 
   def sentimentFor(
       entry: Entry,
@@ -142,7 +137,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       symbols: List[String]
   ): List[model.Engagement] =
     model.Engagement.fromSymbols(
-      symbols.distinct.filter(!isIgnored(_)),
+      symbols.distinct.filter(!Market.isIgnored(_)),
       entry.name,
       entry.created_time
     )
