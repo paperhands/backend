@@ -104,9 +104,9 @@ object RedditScraper extends Reddit with Cfg with Market {
   def isIgnored(symb: String): Boolean =
     cfg.market.ignores.find(_ == symb).isDefined
 
+  val marketSymbols = market.map(_.symbol)
   def getSymbols(body: String): List[String] =
-    market
-      .map(_.symbol)
+    marketSymbols
       .filter(s => {
         val exceptionRe = s"(?is).*\\s+$s\\b.*".r
         val normalRe = s"(?is).*\\s*\\$$$s\\b.*".r
