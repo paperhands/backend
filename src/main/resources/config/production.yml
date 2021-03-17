@@ -5,7 +5,7 @@ reddit:
 
 http:
   port: 8888
-  host: localhost
+  host: 0.0.0.0
 
 vantage:
   api_key: GUS0Y6G5HRQE4MMN
