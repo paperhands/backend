@@ -129,12 +129,12 @@ object Handler extends Encoders with AddContextShift {
 
     for {
       previous <- Storage
-        .getTrending(prevStart, prevEnd, 30)
+        .getTrending(prevStart, prevEnd, 50)
         .transact(xa)
       present <- Storage
-        .getTrending(start, end, 30)
+        .getTrending(start, end, 50)
         .transact(xa)
-    } yield QuoteTrending.fromTrending(previous, present).take(10)
+    } yield QuoteTrending.fromTrending(previous, present).take(20)
   }
 
   def getDetails(
