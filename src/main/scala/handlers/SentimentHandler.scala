@@ -131,8 +131,8 @@ object Handler extends Encoders with AddContextShift {
   def periodToBucket(period: String): String =
     period match {
       case "1D" => "15 minutes"
-      case "5D" => "1 hour"
-      case "1W" => "3 hours"
+      case "5D" => "12 hours"
+      case "1W" => "12 hours"
       case "1M" => "1 day"
       case "6M" => "1 week"
       case "1Y" => "2 weeks"
