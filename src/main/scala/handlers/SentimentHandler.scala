@@ -117,15 +117,41 @@ object Handler extends Encoders with AddContextShift {
   def toInstant(in: LocalDateTime) =
     in.atZone(ZoneId.systemDefault).toInstant
 
-  def getQuoteTrending(xa: HikariTransactor[IO]): IO[List[QuoteTrending]] = {
+  def periodToDays(period: String): Int =
+    period match {
+      case "1D" => 1
+      case "5D" => 5
+      case "1W" => 7
+      case "1M" => 30
+      case "6M" => 180
+      case "1Y" => 360
+      case _    => 1
+    }
+
+  def periodToBucket(period: String): String =
+    period match {
+      case "1D" => "15 minutes"
+      case "5D" => "1 hour"
+      case "1W" => "3 hours"
+      case "1M" => "1 day"
+      case "6M" => "1 week"
+      case "1Y" => "2 weeks"
+      case _    => "15 minutes"
+    }
+
+  def fetchTrending(
+      xa: HikariTransactor[IO],
+      period: String
+  ): IO[List[QuoteTrending]] = {
+    val days = periodToDays(period)
     val now = LocalDateTime.now()
-    val dayAgo = now.minusDays(1)
+    val dayAgo = now.minusDays(days)
 
     val start = toInstant(dayAgo)
     val end = toInstant(now)
 
-    val prevStart = toInstant(dayAgo.minusDays(1))
-    val prevEnd = toInstant(now.minusDays(1))
+    val prevStart = toInstant(dayAgo.minusDays(days))
+    val prevEnd = toInstant(now.minusDays(days))
 
     for {
       previous <- Storage
@@ -137,18 +163,19 @@ object Handler extends Encoders with AddContextShift {
     } yield QuoteTrending.fromTrending(previous, present).take(20)
   }
 
-  def getDetails(
+  def fetchDetails(
       xa: HikariTransactor[IO],
       symbol: String,
       period: String
   ): IO[QuoteDetails] = {
+    val days = periodToDays(period)
     val now = LocalDateTime.now()
-    val dayAgo = now.minusDays(1)
+    val dayAgo = now.minusDays(days)
 
     val start = toInstant(dayAgo)
     val end = toInstant(now)
 
-    val bucket = "15 minutes"
+    val bucket = periodToBucket(period)
 
     for {
       // priceFiber <- Vantage.priceData(symbol, period).start
@@ -184,10 +211,10 @@ object Handler extends Encoders with AddContextShift {
   }
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
-    case GET -> Root / "quote" / "trending" =>
-      Ok(getQuoteTrending(xa))
+    case GET -> Root / "quote" / "trending" / period =>
+      Ok(fetchTrending(xa, period))
     case GET -> Root / "quote" / "details" / symbol / period =>
-      Ok(getDetails(xa, symbol.toUpperCase, period))
+      Ok(fetchDetails(xa, symbol.toUpperCase, period))
     case GET -> Root / "content" / "sample" / symbol =>
       Ok(getSampleContent(xa, symbol.toUpperCase))
   }
