@@ -63,7 +63,7 @@ object Storage extends model.DoobieMetas {
     val sql = """
       INSERT INTO
       content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
-      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now())
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now() at time zone 'utc')
     """
     Update[model.Content](sql).run(entry)
   }
@@ -253,7 +253,7 @@ object Storage extends model.DoobieMetas {
     val sql = """
       INSERT INTO
       ocr_cache(url, output, created_time)
-      VALUES(?, ?, now())
+      VALUES(?, ?, now() at time zone 'utc')
     """
     Update[model.OcrCache](sql).run(entry)
   }

@@ -115,7 +115,7 @@ object Handler extends Encoders with AddContextShift {
   val logger = Logger("sentiment-handler")
 
   def toInstant(in: LocalDateTime) =
-    in.atZone(ZoneId.systemDefault).toInstant
+    in.atZone(ZoneId.of("UTC")).toInstant
 
   def periodToDays(period: String): Int =
     period match {
@@ -144,7 +144,7 @@ object Handler extends Encoders with AddContextShift {
       period: String
   ): IO[List[QuoteTrending]] = {
     val days = periodToDays(period)
-    val now = LocalDateTime.now()
+    val now = LocalDateTime.now(ZoneId.of("UTC"))
     val dayAgo = now.minusDays(days)
 
     val start = toInstant(dayAgo)
@@ -169,9 +169,8 @@ object Handler extends Encoders with AddContextShift {
       period: String
   ): IO[QuoteDetails] = {
     val days = periodToDays(period)
-    val now = LocalDateTime.now()
+    val now = LocalDateTime.now(ZoneId.of("UTC"))
     val dayAgo = now.minusDays(days)
-
     val start = toInstant(dayAgo)
     val end = toInstant(now)
 

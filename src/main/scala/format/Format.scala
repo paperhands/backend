@@ -23,6 +23,6 @@ object Parse {
         in,
         DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.US)
       )
-      .atZone(ZoneId.of(zone))
+      .atZone(ZoneId.of("UTC"))
       .toInstant
 }

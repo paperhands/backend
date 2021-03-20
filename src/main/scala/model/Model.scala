@@ -6,6 +6,7 @@ import org.postgresql.util.PGobject
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
 import io.circe.generic.JsonCodec
 import java.time.Instant
+import java.time.ZoneId
 import app.paperhands.reddit.Entry
 
 trait DoobieMetas {
@@ -13,7 +14,11 @@ trait DoobieMetas {
   import doobie.implicits.javasql.TimestampMeta
 
   implicit val JavaTimeInstantMeta: Meta[java.time.Instant] =
-    TimestampMeta.imap(_.toInstant)(java.sql.Timestamp.from)
+    TimestampMeta.imap(
+      _.toInstant
+    )(i => {
+      java.sql.Timestamp.valueOf(i.atZone(ZoneId.of("UTC")).toLocalDateTime())
+    })
 
   implicit val contentMetaMeta: Meta[ContentMeta] =
     Meta.Advanced
