@@ -15,7 +15,6 @@ object Format {
   }
 
   def rfc3339(t: Instant) = {
-    println(t)
     DateTimeFormatter.ISO_INSTANT.format(t)
   }
 }
