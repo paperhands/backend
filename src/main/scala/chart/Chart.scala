@@ -12,7 +12,7 @@ case class ChartResponse(
 
 object Chart {
   private def format(v: model.TimeSeries) =
-    Format.HHmm(v.time)
+    Format.rfc3339(v.time)
 
   def fromTimeSeries(input: List[model.TimeSeries]): ChartResponse = {
     val data = input.map(_.value)

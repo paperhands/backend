@@ -13,6 +13,11 @@ object Format {
     val df = new SimpleDateFormat("HH:mm")
     df.format(Date.from(t))
   }
+
+  def rfc3339(t: Instant) = {
+    println(t)
+    DateTimeFormatter.ISO_INSTANT.format(t)
+  }
 }
 
 object Parse {

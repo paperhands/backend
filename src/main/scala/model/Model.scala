@@ -8,15 +8,16 @@ import io.circe.generic.JsonCodec
 import java.time.Instant
 import java.time.ZoneId
 import app.paperhands.reddit.Entry
+import java.time.ZoneOffset
 
 trait DoobieMetas {
   import doobie.util.meta._
   import doobie.implicits.javasql.TimestampMeta
 
   implicit val JavaTimeInstantMeta: Meta[java.time.Instant] =
-    TimestampMeta.imap(
-      _.toInstant
-    )(i => {
+    TimestampMeta.imap(t => {
+      t.toLocalDateTime().atOffset(ZoneOffset.UTC).toInstant
+    })(i => {
       java.sql.Timestamp.valueOf(i.atZone(ZoneId.of("UTC")).toLocalDateTime())
     })
 
