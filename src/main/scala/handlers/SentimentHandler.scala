@@ -39,7 +39,8 @@ case class QuoteTrending(
     desc: Option[String],
     change_perc: Double,
     pos: Int,
-    old_pos: Int
+    old_pos: Int,
+    popularity: Int
 )
 
 object QuoteTrending extends Market {
@@ -72,7 +73,8 @@ object QuoteTrending extends Market {
         findDesc(t.symbol),
         changePerc(t.symbol, t.popularity, previous),
         index,
-        oldPos(t.symbol, previous)
+        oldPos(t.symbol, previous),
+        t.popularity.toInt
       )
     }
 }
