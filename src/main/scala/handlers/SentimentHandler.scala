@@ -13,7 +13,7 @@ import org.http4s.circe._
 import app.paperhands.model
 import app.paperhands.chart._
 import app.paperhands.popularity.{Popularity, PopularityResponse}
-import app.paperhands.market.Market
+import app.paperhands.market.{Ticket, Market}
 import app.paperhands.storage.{Storage}
 import app.paperhands.io.AddContextShift
 import app.paperhands.vantage.Vantage
@@ -115,16 +115,16 @@ object QuoteDetails {
     )
 }
 
-case class Quote(symbol: String, desc: String)
+case class QuoteSearchResult(symbol: String, desc: String)
 
 object SearchQuote extends Market {
-  def find(term: String) =
+  def findBy(f: Ticket => String)(term: String) =
     market
-      .filter(t =>
-        t.symbol.toLowerCase.contains(term.toLowerCase) || t.desc.toLowerCase
-          .contains(term.toLowerCase)
-      )
-      .map(t => Quote(t.symbol, t.desc))
+      .filter(t => f(t).toLowerCase.contains(term.toLowerCase))
+      .map(t => QuoteSearchResult(t.symbol, t.desc))
+
+  def find(term: String) =
+    findBy(_.symbol)(term) ++ findBy(_.desc)(term)
 
 }
 
@@ -135,8 +135,8 @@ trait Encoders {
     jsonEncoderOf[IO, QuoteDetails]
   implicit val ContentListEncoder: EntityEncoder[IO, List[model.Content]] =
     jsonEncoderOf[IO, List[model.Content]]
-  implicit val QuoteListEncoder: EntityEncoder[IO, List[Quote]] =
-    jsonEncoderOf[IO, List[Quote]]
+  implicit val QuoteListEncoder: EntityEncoder[IO, List[QuoteSearchResult]] =
+    jsonEncoderOf[IO, List[QuoteSearchResult]]
 }
 
 object Handler extends Encoders with AddContextShift {
@@ -237,15 +237,11 @@ object Handler extends Encoders with AddContextShift {
   def getSampleContent(
       xa: HikariTransactor[IO],
       symbol: String
-  ): IO[List[model.Content]] = {
+  ): IO[List[model.Content]] =
     Storage.getSamples(symbol, 10).transact(xa)
-  }
 
-  def findQuotes(
-      term: String
-  ): IO[List[Quote]] = {
+  def findQuotes(term: String): IO[List[QuoteSearchResult]] =
     IO.pure(SearchQuote.find(term).take(50))
-  }
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "search" / term =>
