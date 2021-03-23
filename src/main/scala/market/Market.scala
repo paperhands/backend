@@ -32,7 +32,7 @@ object Market extends AddContextShift with Cfg {
 
   val files = List("nasdaqlisted.txt", "otherlisted.txt", "custom.txt")
   val cleanRe = "(?i)(?<=(inc|corp)\\.).*".r
-  val afterCleanupRe = "(?i) (class [a-z]|common stock).*".r
+  val afterCleanupRe = "(?i) (class [a-z]|[- ]*common stock).*".r
 
   def cleanupDescription(desc: String) =
     List(cleanRe, afterCleanupRe).foldLeft(desc) { case (desc, re) =>

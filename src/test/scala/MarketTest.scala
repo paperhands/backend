@@ -52,5 +52,9 @@ object MarketTestSuite extends SimpleTestSuite {
       "UWM Holdings Corporation Class A Common Stock",
       "UWM Holdings Corporation"
     )
+    t(
+      "Pilgrim's Pride Corporation - Common Stock",
+      "Pilgrim's Pride Corporation"
+    )
   }
 }

@@ -124,7 +124,7 @@ object SearchQuote extends Market {
       .map(t => QuoteSearchResult(t.symbol, t.desc))
 
   def find(term: String) =
-    findBy(_.symbol)(term) ++ findBy(_.desc)(term)
+    (findBy(_.symbol)(term) ++ findBy(_.desc)(term)).distinct
 
 }
 
