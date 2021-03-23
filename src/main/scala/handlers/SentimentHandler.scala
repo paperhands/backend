@@ -43,10 +43,12 @@ case class QuoteTrending(
     popularity: Int
 )
 
-object QuoteTrending extends Market {
-  def findDesc(symb: String) =
+object Desc extends Market {
+  def find(symb: String) =
     market.find(_.symbol == symb).map(_.desc)
+}
 
+object QuoteTrending {
   def oldPos(symb: String, list: List[model.Trending]) =
     list.indexWhere(_.symbol == symb)
 
@@ -70,7 +72,7 @@ object QuoteTrending extends Market {
     present.zipWithIndex.map { case (t, index) =>
       QuoteTrending(
         t.symbol,
-        findDesc(t.symbol),
+        Desc.find(t.symbol),
         changePerc(t.symbol, t.popularity, previous),
         index,
         oldPos(t.symbol, previous),
@@ -80,6 +82,8 @@ object QuoteTrending extends Market {
 }
 
 case class QuoteDetails(
+    symbol: String,
+    desc: Option[String],
     mentions: ChartResponse,
     engagements: ChartResponse,
     sentiments: ChartResponse,
@@ -89,6 +93,7 @@ case class QuoteDetails(
 
 object QuoteDetails {
   def fromQueryResults(
+      symbol: String,
       mentions: List[model.TimeSeries],
       engagements: List[model.TimeSeries],
       sentiments: List[model.TimeSeries],
@@ -96,6 +101,8 @@ object QuoteDetails {
       popularity: model.Popularity
   ) =
     QuoteDetails(
+      symbol,
+      Desc.find(symbol),
       Chart.fromTimeSeries(mentions),
       Chart.fromTimeSeries(engagements),
       Chart.fromTimeSeries(sentiments),
@@ -196,6 +203,7 @@ object Handler extends Encoders with AddContextShift {
       price <- IO.pure(List())
     } yield QuoteDetails
       .fromQueryResults(
+        symbol,
         mentions,
         engagements,
         sentiments,
