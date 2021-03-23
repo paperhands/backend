@@ -85,7 +85,7 @@ object QuoteTrending {
 case class QuoteDetails(
     symbol: String,
     desc: Option[String],
-    currentPrice: Double,
+    current_price: Double,
     mentions: ChartResponse,
     engagements: ChartResponse,
     sentiments: ChartResponse,
