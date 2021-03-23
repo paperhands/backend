@@ -244,7 +244,7 @@ object Handler extends Encoders with AddContextShift {
   def findQuotes(
       term: String
   ): IO[List[Quote]] = {
-    IO.pure(SearchQuote.find(term))
+    IO.pure(SearchQuote.find(term).take(50))
   }
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
