@@ -115,6 +115,19 @@ object QuoteDetails {
     )
 }
 
+case class Quote(symbol: String, desc: String)
+
+object SearchQuote extends Market {
+  def find(term: String) =
+    market
+      .filter(t =>
+        t.symbol.toLowerCase.contains(term.toLowerCase) || t.desc.toLowerCase
+          .contains(term.toLowerCase)
+      )
+      .map(t => Quote(t.symbol, t.desc))
+
+}
+
 trait Encoders {
   implicit val QuoteTrendingsEncoder: EntityEncoder[IO, List[QuoteTrending]] =
     jsonEncoderOf[IO, List[QuoteTrending]]
@@ -122,6 +135,8 @@ trait Encoders {
     jsonEncoderOf[IO, QuoteDetails]
   implicit val ContentListEncoder: EntityEncoder[IO, List[model.Content]] =
     jsonEncoderOf[IO, List[model.Content]]
+  implicit val QuoteListEncoder: EntityEncoder[IO, List[Quote]] =
+    jsonEncoderOf[IO, List[Quote]]
 }
 
 object Handler extends Encoders with AddContextShift {
@@ -226,7 +241,15 @@ object Handler extends Encoders with AddContextShift {
     Storage.getSamples(symbol, 10).transact(xa)
   }
 
+  def findQuotes(
+      term: String
+  ): IO[List[Quote]] = {
+    IO.pure(SearchQuote.find(term))
+  }
+
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
+    case GET -> Root / "quote" / "search" / term =>
+      Ok(findQuotes(term))
     case GET -> Root / "quote" / "trending" / period =>
       Ok(fetchTrending(xa, period))
     case GET -> Root / "quote" / "details" / symbol / period =>
