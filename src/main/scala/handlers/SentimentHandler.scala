@@ -17,6 +17,7 @@ import app.paperhands.market.Market
 import app.paperhands.storage.{Storage}
 import app.paperhands.io.AddContextShift
 import app.paperhands.vantage.Vantage
+import app.paperhands.yahoo._
 
 import java.util.Calendar
 import java.time.LocalDateTime
@@ -84,6 +85,7 @@ object QuoteTrending {
 case class QuoteDetails(
     symbol: String,
     desc: Option[String],
+    currentPrice: Double,
     mentions: ChartResponse,
     engagements: ChartResponse,
     sentiments: ChartResponse,
@@ -94,6 +96,7 @@ case class QuoteDetails(
 object QuoteDetails {
   def fromQueryResults(
       symbol: String,
+      yahooResponse: YahooResponse,
       mentions: List[model.TimeSeries],
       engagements: List[model.TimeSeries],
       sentiments: List[model.TimeSeries],
@@ -103,6 +106,7 @@ object QuoteDetails {
     QuoteDetails(
       symbol,
       Desc.find(symbol),
+      yahooResponse.price,
       Chart.fromTimeSeries(mentions),
       Chart.fromTimeSeries(engagements),
       Chart.fromTimeSeries(sentiments),
@@ -187,6 +191,7 @@ object Handler extends Encoders with AddContextShift {
 
     for {
       // priceFiber <- Vantage.priceData(symbol, period).start
+      yahooF <- Yahoo.scrape(symbol).start
       mentions <- Storage
         .getMentionTimeseries(symbol, bucket, start, end)
         .transact(xa)
@@ -201,9 +206,11 @@ object Handler extends Encoders with AddContextShift {
         .transact(xa)
       // price <- priceFiber.join
       price <- IO.pure(List())
+      yahooResponse <- yahooF.join
     } yield QuoteDetails
       .fromQueryResults(
         symbol,
+        yahooResponse,
         mentions,
         engagements,
         sentiments,
