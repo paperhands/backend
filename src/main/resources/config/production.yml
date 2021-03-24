@@ -103,6 +103,7 @@ market:
     - USD
     - ETF
     - CEO
+    - CFO
     - IMO
     - AND
     - BIG
@@ -150,4 +151,5 @@ market:
     - TA
     - LMAO
     - OC
+    - HE
     - RH # they mean robinhood by saying RH
