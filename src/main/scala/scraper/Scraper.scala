@@ -165,8 +165,6 @@ object RedditScraper extends Reddit with Cfg with Market {
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
     for {
-      _ <- Storage.saveContent(content).transact(xa)
-      _ <- Storage.saveSentiments(sentiments).transact(xa)
       treeSymbols <- extractTreeSymbols(xa, entry.parent_id)
       engagements <- IO.pure(
         engagementFor(entry, symbols ++ treeSymbols)
@@ -176,8 +174,9 @@ object RedditScraper extends Reddit with Cfg with Market {
           .map(_.symbol)
           .mkString(" ")} <--> ${engagements.map(_.symbol).mkString(" ")} |"
       )
-      _ <- Storage
-        .saveEngagements(engagements)
+      _ <- (Storage.saveContent(content)
+        >> Storage.saveSentiments(sentiments)
+        >> Storage.saveEngagements(engagements))
         .transact(xa)
     } yield ()
   }
