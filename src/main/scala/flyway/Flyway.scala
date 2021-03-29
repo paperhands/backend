@@ -35,7 +35,7 @@ object MyFlyway {
       .as(ExitCode.Success)
 
   def run(xa: HikariTransactor[IO], command: Option[String]): IO[ExitCode] =
-    xa.configure { (ds: HikariDataSource) =>
+    xa.configure { ds =>
       command match {
         case Some("migrate") => migrate(ds)
         case Some("clean")   => clean(ds)
