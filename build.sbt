@@ -2,10 +2,13 @@ val _scalaVersion = "2.13.5"
 val circeVersion = "0.14.0-M4"
 val http4sVersion = "0.21.21"
 val sttpVersion = "3.2.0"
-val f2sVersion = "2.5.3"
-val f2sDataVersion = "0.10.0"
 val catsVersion = "2.5.0"
 val catsEffVersion = "2.4.1"
+val f2sVersion = "2.5.3"
+/* TODO migrate to latest cats-effect */
+/* val catsEffVersion = "3.0.0" */
+/* val f2sVersion = "3.0.0" */
+val f2sDataVersion = "0.10.0"
 val doobieVersion = "0.12.1"
 
 lazy val root = project
