@@ -1,11 +1,12 @@
 val _scalaVersion = "2.13.5"
 val circeVersion = "0.14.0-M4"
-val http4sVersion = "0.21.20"
-val sttpVersion = "3.1.7"
+val http4sVersion = "0.21.21"
+val sttpVersion = "3.2.0"
 val f2sVersion = "2.5.3"
-val f2sDataVersion = "0.9.0"
-val catsVersion = "2.4.2"
+val f2sDataVersion = "0.10.0"
+val catsVersion = "2.5.0"
 val catsEffVersion = "2.3.3"
+val doobieVersion = "0.12.1"
 
 lazy val root = project
   .in(file("."))
@@ -37,12 +38,12 @@ lazy val root = project
       "org.http4s" %% "http4s-blaze-client" % http4sVersion,
       "org.http4s" %% "http4s-blaze-server" % http4sVersion,
 
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.3",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
 
-      "org.tpolecat" %% "doobie-core"      % "0.10.0",
-      "org.tpolecat" %% "doobie-hikari"    % "0.10.0",
-      "org.tpolecat" %% "doobie-postgres"  % "0.10.0",
+      "org.tpolecat" %% "doobie-core"     % doobieVersion,
+      "org.tpolecat" %% "doobie-hikari"   % doobieVersion,
+      "org.tpolecat" %% "doobie-postgres" % doobieVersion,
 
        "com.github.julien-truffaut" %% "monocle-core"  % "3.0.0-M3",
        "com.github.julien-truffaut" %% "monocle-macro" % "3.0.0-M3", // Not required for Scala 3
@@ -51,7 +52,7 @@ lazy val root = project
        "io.monix" %% "minitest-laws" % "2.9.3" % "test",
        "com.codecommit" %% "cats-effect-testing-minitest" % "0.5.2" % "test",
 
-       "org.flywaydb"  % "flyway-core"     % "7.6.0",
+       "org.flywaydb"  % "flyway-core"     % "7.7.1",
 
        "net.ruippeixotog" %% "scala-scraper" % "2.2.0",
 
