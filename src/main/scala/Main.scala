@@ -20,7 +20,7 @@ object Main extends IOApp with ConnectionPool {
         case Some("server") => Server.run(xa)
         case Some("export") if args.length > 1 =>
           Export.run(args.get(1), args.get(2), xa)
-        case Some("flyway") if args.length > 1 => MyFlyway.run(args.get(1))
+        case Some("flyway") if args.length > 1 => MyFlyway.run(xa, args.get(1))
         case _ =>
           logger
             .error(s"Unknown command '${args.mkString(" ")}'")
