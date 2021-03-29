@@ -154,7 +154,7 @@ object RedditScraper extends Reddit with Cfg with Market {
         for {
           tree <- Storage.getParsedTree(id).transact(xa)
         } yield symbolsFromTree(tree)
-      case None => IO(List())
+      case None => IO.pure(List())
     }
 
   def process(xa: HikariTransactor[IO], entry: Entry): IO[Unit] = {

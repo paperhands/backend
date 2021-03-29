@@ -61,6 +61,8 @@ lazy val root = project
        "org.gnieh" %% "fs2-data-csv" % f2sDataVersion,
 
        "org.typelevel" %% "cats-core" % catsVersion,
-       "org.typelevel" %% "cats-effect" % catsEffVersion
+       "org.typelevel" %% "cats-effect" % catsEffVersion,
+
+       "me.xdrop" % "fuzzywuzzy" % "1.3.1",
     ),
   )

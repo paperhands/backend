@@ -35,6 +35,8 @@ import doobie._
 import doobie.implicits._
 import doobie.hikari.HikariTransactor
 
+import me.xdrop.fuzzywuzzy.FuzzySearch
+
 case class QuoteTrending(
     symbol: String,
     desc: Option[String],
@@ -118,13 +120,38 @@ object QuoteDetails {
 case class QuoteSearchResult(symbol: String, desc: String)
 
 object SearchQuote extends Market {
-  def findBy(f: Ticket => String)(term: String) =
+  val descSearchLimit = 20
+  val overallLimit = 50
+  val descRatioCutoff = 70
+
+  def findBySymbol(term: String) = {
+    val lowerTerm = term.toLowerCase
+
     market
-      .filter(t => f(t).toLowerCase.contains(term.toLowerCase))
-      .map(t => QuoteSearchResult(t.symbol, t.desc))
+      .filter(t => t.symbol.toLowerCase.contains(lowerTerm))
+  }
+
+  def findByDesc(term: String) = {
+    val lowerTerm = term.toLowerCase
+
+    market
+      .map { t =>
+        val ratio = FuzzySearch.partialRatio(lowerTerm, t.desc.toLowerCase)
+
+        (ratio, t)
+      }
+      .filter(_._1 >= descRatioCutoff)
+      .sortBy(_._1)
+      .reverse
+      .take(descSearchLimit)
+      .map(_._2)
+  }
 
   def find(term: String) =
-    (findBy(_.symbol)(term) ++ findBy(_.desc)(term)).distinct
+    (findBySymbol(term) ++ findByDesc(term))
+      .map(t => QuoteSearchResult(t.symbol, t.desc))
+      .distinct
+      .take(overallLimit)
 
 }
 
@@ -241,7 +268,7 @@ object Handler extends Encoders with AddContextShift {
     Storage.getSamples(symbol, 10).transact(xa)
 
   def findQuotes(term: String): IO[List[QuoteSearchResult]] =
-    IO.pure(SearchQuote.find(term).take(50))
+    IO.pure(SearchQuote.find(term))
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "search" / term =>
