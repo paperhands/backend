@@ -1,15 +1,22 @@
 name: CI
 
-on:
-  push:
-    branches:
-    - master
+on: push
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    container:
+      image: openjdk:14-jdk-alpine
+    steps:
+    - uses: actions/checkout@v2
+    - run: apk add make
+    - run: make apk-deps alpine-install-sbt data test
   package:
     runs-on: ubuntu-latest
     container:
       image: openjdk:14-jdk-alpine
+    needs: test
+    if: github.ref == 'refs/heads/master'
     steps:
     - uses: actions/checkout@v2
     - run: apk add make

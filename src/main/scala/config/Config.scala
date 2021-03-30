@@ -63,7 +63,7 @@ object Config {
   val logger = Logger("main")
 
   def readFile(path: String) =
-    logger.info(s"loading config from $path") *>
+    logger.info(s"loading config from $path") >>
       IO(Source.fromResource(path).mkString)
 
   def parseYaml(contents: String) =
@@ -79,5 +79,6 @@ object Config {
       s"config/$env.yml"
     ) >>= readFile >>= parseYaml
 
+  import cats.effect.unsafe.implicits.global
   val cfg = load.unsafeRunSync
 }

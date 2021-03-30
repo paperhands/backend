@@ -16,7 +16,6 @@ import app.paperhands.model
 import app.paperhands.chart._
 import app.paperhands.market.{Ticket, Market}
 import app.paperhands.storage.{Storage}
-import app.paperhands.io.AddContextShift
 import app.paperhands.vantage.Vantage
 import app.paperhands.yahoo._
 
@@ -175,7 +174,7 @@ trait Encoders {
     jsonEncoderOf[IO, Int]
 }
 
-object Handler extends Encoders with AddContextShift {
+object Handler extends Encoders {
   val logger = Logger("sentiment-handler")
 
   def toInstant(in: LocalDateTime) =

@@ -1,6 +1,5 @@
 package app.paperhands.server
 
-import app.paperhands.io.AddContextShift
 import app.paperhands.config.Cfg
 import app.paperhands.handlers.paperhands
 
@@ -16,9 +15,7 @@ import org.http4s.server.Router
 import scala.concurrent.ExecutionContext.Implicits.global
 import doobie.hikari.HikariTransactor
 
-object Server extends Cfg with AddContextShift {
-  implicit val timer: Timer[IO] = IO.timer(global)
-
+object Server extends Cfg {
   def httpApp(xa: HikariTransactor[IO]) = Router(
     "/api/v1" -> paperhands.Handler.paperhandsService(xa)
   ).orNotFound

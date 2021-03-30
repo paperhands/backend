@@ -1,8 +1,14 @@
 package app.paperhands.vantage
 
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-import sttp.client3._
-import sttp.model._
+
+import org.http4s._
+import org.http4s.implicits._
+import org.http4s.client.dsl.io._
+import org.http4s.headers._
+import org.http4s.MediaType
+import org.http4s.Method._
+import org.http4s.circe._
 
 import cats._
 import cats.effect._
@@ -96,15 +102,26 @@ object Vantage extends HttpBackend with Cfg with Decoders {
       symbol: String,
       timeFrame: String
   ) =
-    uri"https://www.alphavantage.co/query?function=${mapTimeFrame(timeFrame)}&symbol=$symbol&interval=15min&apikey=$apiKey&datatype=json&outputsize=full"
+    uri"https://www.alphavantage.co/query"
+      .withQueryParams(
+        Map(
+          "function" -> mapTimeFrame(timeFrame),
+          "symbol" -> symbol,
+          "interval" -> "15min",
+          "apikey" -> apiKey,
+          "datatype" -> "json",
+          "outputsize" -> "full"
+        )
+      )
 
   def constructRequest(
       uri: Uri
   ) =
-    basicRequest
-      .header("User-Agent", ua)
-      .contentType("application/json")
-      .get(uri)
+    GET(
+      uri,
+      Accept(MediaType.application.json),
+      `User-Agent`(ProductId(ua))
+    )
 
   def decodeResponseBody(uri: Uri, body: String): IO[VantageResponse] =
     decode[VantageResponse](body) match {
@@ -122,11 +139,10 @@ object Vantage extends HttpBackend with Cfg with Decoders {
     val uri = constructUri(symbol, period)
     val request = constructRequest(uri)
 
-    backend.use { backend =>
-      request.send(backend).map(_.body.getOrElse("")) >>= ((v: String) =>
-        decodeResponseBody(uri, v).map(_.toTimeSeries(symbol))
-      )
+    client.use { client =>
+      client
+        .expect(request)(jsonOf[IO, VantageResponse])
+        .map(_.toTimeSeries(symbol))
     }
   }
-
 }

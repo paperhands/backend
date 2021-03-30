@@ -2,7 +2,6 @@ package app.paperhands.storage
 
 import java.time.Instant
 
-import app.paperhands.io.AddContextShift
 import app.paperhands.config.Cfg
 import app.paperhands.model
 
@@ -22,20 +21,18 @@ trait ConnectionPool {
   val transactor = ConnectionPool.transactor
 }
 
-object ConnectionPool extends Cfg with AddContextShift {
+object ConnectionPool extends Cfg {
   val transactor: Resource[IO, HikariTransactor[IO]] =
     for {
       ce <- ExecutionContexts.fixedThreadPool[IO](
         cfg.repository.max_conns
       ) // our connect EC
-      be <- Blocker[IO] // our blocking EC
       xa <- HikariTransactor.newHikariTransactor[IO](
         "org.postgresql.Driver",
         s"jdbc:postgresql://${cfg.repository.host}:${cfg.repository.port}/${cfg.repository.database}",
         cfg.repository.user,
         cfg.repository.password,
-        ce, // await connection here
-        be // execute JDBC operations here
+        ce // await connection here
       )
     } yield xa
 }

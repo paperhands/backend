@@ -1,11 +1,15 @@
 package app.paperhands.yahoo
 
-import sttp.client3._
-import sttp.model._
-
 import cats._
 import cats.effect._
 import cats.implicits._
+
+import org.http4s._
+import org.http4s.implicits._
+import org.http4s.client.dsl.io._
+import org.http4s.headers._
+import org.http4s.MediaType
+import org.http4s.Method._
 
 import app.paperhands.model
 import app.paperhands.config.Cfg
@@ -34,18 +38,19 @@ object Yahoo extends HttpBackend with Cfg {
   def constructUri(
       symbol: String
   ) =
-    uri"https://finance.yahoo.com/quote/$symbol"
+    uri"https://finance.yahoo.com/quote" / symbol
 
   def constructRequest(
       uri: Uri
   ) =
-    basicRequest
-      .header("User-Agent", ua)
-      .contentType("text/html")
-      .get(uri)
+    GET(
+      uri,
+      Accept(MediaType.text.html),
+      `User-Agent`(ProductId(ua))
+    )
 
   val priceRe = "([0-9]+\\.[0-9]+)".r
-  def scrapeHTML(uri: Uri, body: String): IO[YahooResponse] = {
+  def scrapeHTML(body: String): IO[YahooResponse] = {
     val browser = JsoupBrowser()
     val doc = browser.parseString(body)
     val txt = doc >> text("#quote-header-info")
@@ -62,10 +67,8 @@ object Yahoo extends HttpBackend with Cfg {
     val uri = constructUri(symbol)
     val request = constructRequest(uri)
 
-    backend.use { backend =>
-      request.send(backend).map(_.body.getOrElse("")) >>= ((v: String) =>
-        scrapeHTML(uri, v)
-      )
+    client.use { client =>
+      client.expect[String](request) >>= scrapeHTML
     }
   }
 

@@ -28,11 +28,6 @@ object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
-  override val cs: ContextShift[IO] = IO.contextShift(
-    ExecutionContext.fromExecutorService(
-      Executors.newFixedThreadPool(cfg.reddit.thread_pool)
-    )
-  )
 
   def runOcrAndSaveResult(xa: HikariTransactor[IO], url: String): IO[String] =
     for {

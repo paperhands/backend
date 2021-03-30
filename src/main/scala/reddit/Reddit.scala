@@ -1,17 +1,20 @@
 package app.paperhands.reddit
 
 import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-import sttp.model.StatusCodes
 import java.util.{Calendar, Date}
 import java.time.Instant
 
-import sttp.client3._
-import sttp.client3.http4s._
+import org.http4s._
+import org.http4s.implicits._
+import org.http4s.client.dsl.io._
+import org.http4s.headers._
+import org.http4s.MediaType
+import org.http4s.Method._
+import org.http4s.circe._
 
 import cats._
 import cats.effect._
 import cats.implicits._
-import cats.effect.concurrent.Ref
 
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -20,6 +23,7 @@ import app.paperhands.io.{Logger, HttpBackend}
 import app.paperhands.concurrent._
 
 import doobie.hikari.HikariTransactor
+import org.apache.http.entity.ContentType
 
 object Endpoint extends Enumeration {
   type Endpoint = Value
@@ -35,8 +39,6 @@ case class LoopState(
 )
 
 trait Reddit extends HttpBackend {
-  implicit val timer = IO.timer(ExecutionContext.global)
-
   val logger = Logger("reddit")
 
   def handleEntry(xa: HikariTransactor[IO], entry: Entry): IO[Unit]
@@ -49,27 +51,35 @@ trait Reddit extends HttpBackend {
   ): IO[Either[Throwable, List[Entry]]] = {
     val limit = 100
     val ts = System.currentTimeMillis
-    val ua = s"linux:$secret:0.0.1-$ts (by u/$username)"
-    val url =
+    val ua = ProductId(s"linux:$secret:0.0.1-$ts (by u/$username)")
+    val base = uri"https://www.reddit.com" / "r" / "wallstreetbets"
+    val uri =
       endpoint match {
-        case Posts =>
-          uri"https://www.reddit.com/r/wallstreetbets/new.json?before=$before&limit=$limit&raw_json=1"
-        case Comments =>
-          uri"https://www.reddit.com/r/wallstreetbets/comments.json?before=$before&limit=$limit&raw_json=1"
+        case Posts    => base / "new.json"
+        case Comments => base / "comments.json"
       }
 
-    val request = basicRequest
-      .header("User-Agent", ua)
-      .contentType("application/json")
-      .get(url)
+    val url = uri
+      .withQueryParams(
+        Map(
+          "before" -> before.mkString,
+          "limit" -> limit.toString,
+          "raw_json" -> "1"
+        )
+      )
 
-    backend
-      .use { implicit backend =>
-        for {
-          response <- request.send(backend)
-          body <- IO(response.body.getOrElse(""))
-          result <- IO(decode[RedditListing](body).map(Entry.fromListing(_)))
-        } yield result
+    val request = GET(
+      url,
+      Accept(MediaType.application.json),
+      `User-Agent`(ua)
+    )
+
+    client
+      .use { client =>
+        client
+          .expect(request)(jsonOf[IO, RedditListing])
+          .map(Entry.fromListing(_))
+          .map(Right(_))
       }
       .handleErrorWith(e =>
         for {
@@ -110,7 +120,7 @@ trait Reddit extends HttpBackend {
   ): IO[Unit] = {
     items match {
       case Right(items) =>
-        logger.info(s"Adding ${items.length} entries to the $endpoint chan") *>
+        logger.info(s"Adding ${items.length} entries to the $endpoint chan") >>
           addItemsToQueue(items.toVector, chan)
       case Left(_) => IO()
     }
@@ -127,7 +137,7 @@ trait Reddit extends HttpBackend {
       case Posts                                  => 120.seconds
     }
 
-    logger.info(s"Sleeping for $duration for $endpoint") *>
+    logger.info(s"Sleeping for $duration for $endpoint") >>
       IO.sleep(duration)
   }
 

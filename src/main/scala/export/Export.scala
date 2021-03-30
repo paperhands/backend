@@ -14,20 +14,12 @@ import doobie._
 import doobie.implicits._
 import doobie.hikari.HikariTransactor
 
-import app.paperhands.io.{Logger, AddContextShift}
+import app.paperhands.io.Logger
 import app.paperhands.storage.Storage
 import app.paperhands.model
 import java.nio.file.Paths
 
-object Export extends AddContextShift {
-  implicit val ioTimer: Timer[IO] =
-    IO.timer(scala.concurrent.ExecutionContext.Implicits.global)
-
-  val blocker: Blocker =
-    Blocker.liftExecutionContext(
-      scala.concurrent.ExecutionContext.Implicits.global
-    )
-
+object Export {
   val logger = Logger("export")
 
   val header = NonEmptyList.of(
@@ -62,7 +54,7 @@ object Export extends AddContextShift {
       .through(writeWithHeaders(header))
       .through(toRowStrings(separator = ',', newline = "\n"))
       .through(text.utf8Encode)
-      .through(writeAll(Paths.get(f), blocker))
+      .through(writeAll(Paths.get(f)))
       .compile
       .drain
 

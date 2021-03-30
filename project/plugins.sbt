@@ -2,4 +2,5 @@ addSbtPlugin("ch.epfl.lamp" % "sbt-dotty" % "0.5.3")
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
 addSbtPlugin("com.timushev.sbt" % "sbt-updates" % "0.5.1")
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "0.15.0")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.27")
 addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1") // only for scala 2 i think

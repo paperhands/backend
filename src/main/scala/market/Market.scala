@@ -14,7 +14,6 @@ import java.nio.file.{Files, Paths}
 
 import app.paperhands.config.Cfg
 import app.paperhands.io.Logger
-import app.paperhands.io.AddContextShift
 
 case class Ticket(
     symbol: String,
@@ -27,7 +26,7 @@ trait Market {
   val market: List[Ticket] = Market.market
 }
 
-object Market extends AddContextShift with Cfg {
+object Market extends Cfg {
   val logger = Logger("market-data")
 
   val files = List("nasdaqlisted.txt", "otherlisted.txt", "custom.txt")
@@ -58,12 +57,13 @@ object Market extends AddContextShift with Cfg {
       .toList
 
   def readFile(f: String) =
-    logger.info(s"reading market data from $f") *>
+    logger.info(s"reading market data from $f") >>
       IO(Source.fromResource(s"data/$f").mkString) >>=
       parseCsv
 
   def load: IO[List[Ticket]] =
     files.traverse(readFile).map(_.flatten)
 
+  import cats.effect.unsafe.implicits.global
   val market = load.unsafeRunSync
 }

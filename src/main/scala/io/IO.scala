@@ -8,20 +8,9 @@ import cats._
 import cats.effect._
 import cats.implicits._
 
-import sttp.client3._
-import sttp.client3.http4s._
-
 import scala.concurrent._
 
 import com.typesafe.scalalogging
-
-trait AddContextShift {
-  implicit val cs: ContextShift[IO] = AddContextShift.cs
-}
-
-object AddContextShift {
-  val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
-}
 
 case class LoggerWrapper(logger: scalalogging.Logger) {
   def trace(m: String): IO[Unit] =
@@ -41,7 +30,10 @@ object Logger {
     LoggerWrapper(scalalogging.Logger(name))
 }
 
-trait HttpBackend extends AddContextShift {
-  val backend =
-    Blocker[IO].flatMap(Http4sBackend.usingDefaultBlazeClientBuilder[IO](_))
+trait HttpBackend {
+  import org.http4s.client.blaze._
+  import org.http4s.client._
+  import scala.concurrent.ExecutionContext.global
+
+  val client = BlazeClientBuilder[IO](global).resource
 }
