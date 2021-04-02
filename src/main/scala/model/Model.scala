@@ -133,7 +133,9 @@ case class TimeSeries(
 case class Popularity(
     symbol: String,
     mentions: Int,
-    engagements: Int
+    mention_users: Int,
+    engagements: Int,
+    engagement_users: Int
 )
 
 case class OcrCache(

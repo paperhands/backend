@@ -102,41 +102,84 @@ object Storage extends model.DoobieMetas {
       .query[model.Trending]
       .to[List]
 
+  def getPopularityUniqueUsersForInterval(
+      table: String,
+      symbol: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[Int] =
+    (Fragment.const(s"""
+        SELECT
+          COUNT(DISTINCT c.author) AS value
+        FROM $table AS s
+        INNER JOIN content AS c ON s.origin_id = c.id
+        WHERE
+      """) ++
+      fr"""
+         s.symbol = $symbol
+         and s.created_time > $start
+         and s.created_time < $end
+      """)
+      .query[Int]
+      .unique
+
+  def getPopularityCommentsForInterval(
+      table: String,
+      symbol: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[Int] =
+    (Fragment.const(s"""
+        SELECT
+          COUNT(*) AS value
+        FROM $table AS s
+        WHERE
+      """) ++
+      fr"""
+         s.symbol = $symbol
+         and s.created_time > $start
+         and s.created_time < $end
+      """)
+      .query[Int]
+      .unique
+
   def getPopularityForInterval(
       symbol: String,
       start: Instant,
       end: Instant
   ): ConnectionIO[model.Popularity] =
-    sql"""
-      SELECT
-        $symbol as symbol,
-        (
-          SELECT
-            COUNT(DISTINCT c.author) AS value
-          FROM sentiments AS s
-          INNER JOIN content AS c ON s.origin_id = c.id
-          WHERE
-           s.symbol = $symbol
-           and s.created_time > $start
-           and s.created_time < $end
-          ORDER BY
-            value DESC
-        ) as mentions,
-       (
-         SELECT
-           COUNT(DISTINCT c.author) AS value
-         FROM engagements AS e
-         INNER JOIN content AS c ON e.origin_id = c.id
-         WHERE
-           e.symbol = $symbol
-           and e.created_time > $start
-           and e.created_time < $end
-         ORDER BY
-           value DESC
-       ) as engagements
-    """
-      .query[model.Popularity]
-      .unique
+    for {
+      mentions <- getPopularityCommentsForInterval(
+        "sentiments",
+        symbol,
+        start,
+        end
+      )
+      mentionUsers <- getPopularityUniqueUsersForInterval(
+        "sentiments",
+        symbol,
+        start,
+        end
+      )
+      engagements <- getPopularityCommentsForInterval(
+        "engagements",
+        symbol,
+        start,
+        end
+      )
+      engagementUsers <- getPopularityUniqueUsersForInterval(
+        "engagements",
+        symbol,
+        start,
+        end
+      )
+    } yield model.Popularity(
+      symbol,
+      mentions,
+      mentionUsers,
+      engagements,
+      engagementUsers
+    )
 
   def getEngagementTimeseries(
       symbol: String,

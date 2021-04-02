@@ -12,7 +12,6 @@ import org.http4s.circe._
 
 import app.paperhands.model
 import app.paperhands.chart._
-import app.paperhands.popularity.{Popularity, PopularityResponse}
 import app.paperhands.market.{Ticket, Market}
 import app.paperhands.storage.{Storage}
 import app.paperhands.io.AddContextShift
@@ -92,7 +91,7 @@ case class QuoteDetails(
     engagements: ChartResponse,
     sentiments: ChartResponse,
     price: ChartResponse,
-    popularity: PopularityResponse
+    popularity: model.Popularity
 )
 
 object QuoteDetails {
@@ -113,7 +112,7 @@ object QuoteDetails {
       Chart.fromTimeSeries(engagements),
       Chart.fromTimeSeries(sentiments),
       Chart.fromTimeSeries(price),
-      Popularity.fromQuery(popularity)
+      popularity
     )
 }
 
