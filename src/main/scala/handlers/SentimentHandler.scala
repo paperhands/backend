@@ -1,5 +1,7 @@
 package app.paperhands.handlers.paperhands
 
+import java.time.Instant
+
 import cats._
 import cats.effect._
 import cats.implicits._
@@ -21,6 +23,7 @@ import app.paperhands.yahoo._
 import java.util.Calendar
 import java.time.LocalDateTime
 
+import doobie._
 import doobie.util.meta._
 import java.time.ZoneId
 
@@ -98,12 +101,16 @@ object QuoteDetails {
   def fromQueryResults(
       symbol: String,
       yahooResponse: YahooResponse,
-      mentions: List[model.TimeSeries],
-      engagements: List[model.TimeSeries],
-      sentiments: List[model.TimeSeries],
       price: List[model.TimeSeries],
-      popularity: model.Popularity
-  ) =
+      dbData: (
+          List[model.TimeSeries],
+          List[model.TimeSeries],
+          List[model.TimeSeries],
+          model.Popularity
+      )
+  ) = {
+    val (mentions, engagements, sentiments, popularity) = dbData
+
     QuoteDetails(
       symbol,
       Desc.find(symbol),
@@ -114,6 +121,7 @@ object QuoteDetails {
       Chart.fromTimeSeries(price),
       popularity
     )
+  }
 }
 
 case class QuoteSearchResult(symbol: String, desc: String)
@@ -217,6 +225,30 @@ object Handler extends Encoders with AddContextShift {
     } yield QuoteTrending.fromTrending(previous, present).take(20)
   }
 
+  def fetchDBDataForDetails(
+      symbol: String,
+      bucket: String,
+      start: Instant,
+      end: Instant
+  ): ConnectionIO[
+    (
+        List[model.TimeSeries],
+        List[model.TimeSeries],
+        List[model.TimeSeries],
+        model.Popularity
+    )
+  ] =
+    (
+      Storage
+        .getMentionTimeseries(symbol, bucket, start, end),
+      Storage
+        .getEngagementTimeseries(symbol, bucket, start, end),
+      Storage
+        .getSentimentTimeseries(symbol, bucket, start, end),
+      Storage
+        .getPopularityForInterval(symbol, start, end)
+    ).tupled
+
   def fetchDetails(
       xa: HikariTransactor[IO],
       symbol: String,
@@ -231,32 +263,20 @@ object Handler extends Encoders with AddContextShift {
     val bucket = periodToBucket(period)
 
     for {
-      // priceFiber <- Vantage.priceData(symbol, period).start
       yahooF <- Yahoo.scrape(symbol).start
-      mentions <- Storage
-        .getMentionTimeseries(symbol, bucket, start, end)
-        .transact(xa)
-      engagements <- Storage
-        .getEngagementTimeseries(symbol, bucket, start, end)
-        .transact(xa)
-      sentiments <- Storage
-        .getSentimentTimeseries(symbol, bucket, start, end)
-        .transact(xa)
-      popularity <- Storage
-        .getPopularityForInterval(symbol, start, end)
-        .transact(xa)
-      // price <- priceFiber.join
-      price <- IO.pure(List())
+      dbData <- fetchDBDataForDetails(
+        symbol,
+        bucket,
+        start,
+        end
+      ).transact(xa)
       yahooResponse <- yahooF.join
     } yield QuoteDetails
       .fromQueryResults(
         symbol,
         yahooResponse,
-        mentions,
-        engagements,
-        sentiments,
-        price,
-        popularity
+        List(),
+        dbData
       )
   }
 

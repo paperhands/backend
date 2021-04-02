@@ -23,6 +23,7 @@ lazy val root = project
     cancelable in Global := true,
     Global / onChangedBuildSource := ReloadOnSourceChanges,
     testFrameworks += new TestFramework("minitest.runner.Framework"),
+    autoCompilerPlugins := true,
 
     libraryDependencies ++=Seq(
       "io.circe"  %% "circe-core"     % circeVersion,
