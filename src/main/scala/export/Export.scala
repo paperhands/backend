@@ -38,7 +38,8 @@ object Export extends AddContextShift {
     "permalink",
     "body",
     "created_time",
-    "symbols"
+    "symbols",
+    "sentiment"
   )
 
   def contentToRow(c: model.Content) =
@@ -51,7 +52,8 @@ object Export extends AddContextShift {
         c.permalink,
         c.body,
         c.created_time.toString,
-        c.parsed.symbols.mkString(" ")
+        c.parsed.symbols.mkString(" "),
+        c.parsed.sentiment.toString
       )
     )
 
