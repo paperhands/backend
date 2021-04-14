@@ -311,7 +311,7 @@ object Handler extends Encoders with AddContextShift {
       Ok(fetchTrending(xa, period))
     case GET -> Root / "quote" / "details" / symbol / period =>
       Ok(fetchDetails(xa, symbol.toUpperCase, period))
-    case GET -> Root / "content" / "sample" / symbol =>
+    case GET -> Root / "content" / "samples" / symbol =>
       Ok(getSampleContent(xa, symbol.toUpperCase))
     case GET -> Root / "content" / "unlabeled" =>
       Ok(getUnlabeledContent(xa, 10))
