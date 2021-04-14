@@ -313,11 +313,11 @@ object Handler extends Encoders with AddContextShift {
       Ok(fetchDetails(xa, symbol.toUpperCase, period))
     case GET -> Root / "content" / "sample" / symbol =>
       Ok(getSampleContent(xa, symbol.toUpperCase))
-    case GET -> Root / "unlabeled" =>
+    case GET -> Root / "content" / "unlabeled" =>
       Ok(getUnlabeledContent(xa, 10))
-    case GET -> Root / "unlabeled" / limit =>
+    case GET -> Root / "content" / "unlabeled" / limit =>
       Ok(getUnlabeledContent(xa, limit.toInt))
-    case PUT -> Root / "label" / contentID / label =>
+    case PUT -> Root / "content" / "label" / contentID / label =>
       Ok(labelContent(xa, contentID, label.toInt))
   }
 }
