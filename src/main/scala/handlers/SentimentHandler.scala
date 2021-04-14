@@ -171,6 +171,8 @@ trait Encoders {
     jsonEncoderOf[IO, List[model.Content]]
   implicit val QuoteListEncoder: EntityEncoder[IO, List[QuoteSearchResult]] =
     jsonEncoderOf[IO, List[QuoteSearchResult]]
+  implicit val IntEncoder: EntityEncoder[IO, Int] =
+    jsonEncoderOf[IO, Int]
 }
 
 object Handler extends Encoders with AddContextShift {
@@ -286,8 +288,21 @@ object Handler extends Encoders with AddContextShift {
   ): IO[List[model.Content]] =
     Storage.getSamples(symbol, 10).transact(xa)
 
+  def getUnlabeledContent(
+      xa: HikariTransactor[IO],
+      limit: Int
+  ): IO[List[model.Content]] =
+    Storage.getUnlabeledContent(limit).transact(xa)
+
   def findQuotes(term: String): IO[List[QuoteSearchResult]] =
     IO.pure(SearchQuote.find(term))
+
+  def labelContent(
+      xa: HikariTransactor[IO],
+      contentID: String,
+      label: Int
+  ): IO[Int] =
+    Storage.createLabel(contentID, label).transact(xa)
 
   def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "search" / term =>
@@ -298,5 +313,11 @@ object Handler extends Encoders with AddContextShift {
       Ok(fetchDetails(xa, symbol.toUpperCase, period))
     case GET -> Root / "content" / "sample" / symbol =>
       Ok(getSampleContent(xa, symbol.toUpperCase))
+    case GET -> Root / "unlabeled" =>
+      Ok(getUnlabeledContent(xa, 10))
+    case GET -> Root / "unlabeled" / limit =>
+      Ok(getUnlabeledContent(xa, limit.toInt))
+    case PUT -> Root / "label" / contentID / label =>
+      Ok(labelContent(xa, contentID, label.toInt))
   }
 }

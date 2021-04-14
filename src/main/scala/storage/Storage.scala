@@ -68,6 +68,15 @@ object Storage extends model.DoobieMetas {
     Update[model.Content](sql).run(entry)
   }
 
+  def createLabel(contentID: String, label: Int): ConnectionIO[Int] = {
+    sql"""
+      INSERT INTO
+      labels(created_time, content_id, label)
+      VALUES(now() at time zone 'utc', $contentID, $label)
+      ON CONFLICT DO NOTHING
+    """.update.run
+  }
+
   def getParsedTree(id: String): ConnectionIO[List[model.ContentMeta]] =
     sql"""
       WITH RECURSIVE tree AS (
@@ -272,6 +281,20 @@ object Storage extends model.DoobieMetas {
         id, type, origin, parent_id, permalink, author, body, origin_time, parsed
       FROM content
       WHERE id IN (SELECT origin_id FROM sentiments WHERE symbol = $symbol)
+      ORDER BY random()
+      LIMIT $limit
+    """
+      .query[model.Content]
+      .to[List]
+
+  def getUnlabeledContent(
+      limit: Int
+  ): ConnectionIO[List[model.Content]] =
+    sql"""
+      SELECT
+        id, type, origin, parent_id, permalink, author, body, origin_time, parsed
+      FROM content
+      WHERE id NOT IN (SELECT content_id FROM labels)
       ORDER BY random()
       LIMIT $limit
     """
