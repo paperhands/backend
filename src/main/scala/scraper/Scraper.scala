@@ -65,8 +65,7 @@ object RedditScraper extends Reddit {
   def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
     for {
       out <- processURLs(xa, collectAllImageUrls(e))
-      cfg <- Config.cfg
-      market <- Market.market(cfg)
+      market <- Market.market
       _ <- process(xa, cfg, market, e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 

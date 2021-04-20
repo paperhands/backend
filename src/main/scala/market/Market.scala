@@ -63,5 +63,5 @@ object Market {
   def load(cfg: Config): IO[Market] =
     files.traverse(readFile(cfg)).map(_.flatten)
 
-  def market(cfg: Config) = load(cfg)
+  val market = Config.cfg >>= load
 }

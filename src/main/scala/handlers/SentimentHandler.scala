@@ -212,8 +212,7 @@ object Handler extends Encoders {
     val prevEnd = toInstant(now.minusDays(days))
 
     for {
-      cfg <- Config.cfg
-      market <- Market.market(cfg)
+      market <- Market.market
       previous <- Storage
         .getTrending(prevStart, prevEnd, 50)
         .transact(xa)
@@ -261,8 +260,7 @@ object Handler extends Encoders {
     val bucket = periodToBucket(period)
 
     for {
-      cfg <- Config.cfg
-      market <- Market.market(cfg)
+      market <- Market.market
       yahooResponse <- Yahoo.scrape(symbol)
       dbData <- fetchDBDataForDetails(
         symbol,
@@ -294,8 +292,7 @@ object Handler extends Encoders {
 
   def findQuotes(term: String): IO[List[QuoteSearchResult]] =
     for {
-      cfg <- Config.cfg
-      market <- Market.market(cfg)
+      market <- Market.market
     } yield SearchQuote.find(market, term)
 
   def labelContent(
