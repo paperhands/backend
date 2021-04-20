@@ -1,6 +1,6 @@
 package app.paperhands.storage
 
-import app.paperhands.config.Cfg
+import app.paperhands.config.Config
 import app.paperhands.model
 import cats.effect._
 import cats.implicits._
@@ -12,11 +12,7 @@ import fs2._
 import java.time.Instant
 
 trait ConnectionPool {
-  val transactor = ConnectionPool.transactor
-}
-
-object ConnectionPool extends Cfg {
-  val transactor: Resource[IO, HikariTransactor[IO]] =
+  def transactor(cfg: Config): Resource[IO, HikariTransactor[IO]] =
     for {
       ce <- ExecutionContexts.fixedThreadPool[IO](
         cfg.repository.max_conns

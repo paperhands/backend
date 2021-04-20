@@ -51,10 +51,6 @@ case class Market(
     ignores: List[String]
 )
 
-trait Cfg {
-  val cfg: Config = Config.cfg
-}
-
 object Config {
   val logger = Logger("main")
 
@@ -75,6 +71,5 @@ object Config {
       s"config/$env.yml"
     ) >>= readFile >>= parseYaml
 
-  import cats.effect.unsafe.implicits.global
-  val cfg = load.unsafeRunSync
+  val cfg = load
 }

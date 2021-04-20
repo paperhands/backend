@@ -1,6 +1,6 @@
 package app.paperhands.scraper
 
-import app.paperhands.config.Cfg
+import app.paperhands.config.Config
 import app.paperhands.market.Market
 import app.paperhands.model
 import app.paperhands.ocr.OCR
@@ -13,15 +13,21 @@ import doobie.hikari.HikariTransactor
 import doobie.implicits._
 import monocle.macros.syntax.all._
 
-object RedditScraper extends Reddit with Cfg with Market {
+object RedditScraper extends Reddit {
+  import Market.Market
+
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
 
-  def runOcrAndSaveResult(xa: HikariTransactor[IO], url: String): IO[String] =
+  def runOcrAndSaveResult(
+      xa: HikariTransactor[IO],
+      url: String
+  ): IO[String] =
     for {
+      cfg <- Config.cfg
       out <- OCR
-        .processURL(url)
+        .processURL(cfg, url)
         .handleErrorWith(e =>
           for {
             _ <- logger.error(s"Error processing $url with OCR: $e")
@@ -59,7 +65,9 @@ object RedditScraper extends Reddit with Cfg with Market {
   def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
     for {
       out <- processURLs(xa, collectAllImageUrls(e))
-      _ <- process(xa, e.focus(_.body).modify(v => s"$v$out"))
+      cfg <- Config.cfg
+      market <- Market.market(cfg)
+      _ <- process(xa, cfg, market, e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 
   def handleEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
@@ -71,7 +79,7 @@ object RedditScraper extends Reddit with Cfg with Market {
   def sentTestFn(body: String, coll: List[String]): Boolean =
     coll.find(s => body.contains(s)).isDefined
 
-  def getSentimentValue(body: String): model.SentimentValue =
+  def getSentimentValue(cfg: Config, body: String): model.SentimentValue =
     (
       sentTestFn(body, cfg.sentiment.bull),
       sentTestFn(body, cfg.sentiment.bear)
@@ -82,7 +90,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       case (false, false) => model.Unknown()
     }
 
-  def getSymbols(body: String): List[String] =
+  def getSymbols(market: Market, body: String): List[String] =
     market
       .filter(e => {
         val s = e.symbol
@@ -117,11 +125,12 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
 
   def engagementFor(
+      cfg: Config,
       entry: Entry,
       symbols: List[String]
   ): List[model.Engagement] =
     model.Engagement.fromSymbols(
-      symbols.distinct.filter(!Market.isIgnored(_)),
+      symbols.distinct.filter(!Market.isIgnored(cfg, _)),
       entry.name,
       entry.created_time
     )
@@ -141,9 +150,14 @@ object RedditScraper extends Reddit with Cfg with Market {
       case None => IO.pure(List())
     }
 
-  def process(xa: HikariTransactor[IO], entry: Entry): IO[Unit] = {
-    val symbols = getSymbols(entry.body)
-    val sentimentVal = getSentimentValue(entry.body)
+  def process(
+      xa: HikariTransactor[IO],
+      cfg: Config,
+      market: Market,
+      entry: Entry
+  ): IO[Unit] = {
+    val symbols = getSymbols(market, entry.body)
+    val sentimentVal = getSentimentValue(cfg, entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
     val content =
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
@@ -151,7 +165,7 @@ object RedditScraper extends Reddit with Cfg with Market {
     for {
       treeSymbols <- extractTreeSymbols(xa, entry.parent_id)
       engagements <- IO.pure(
-        engagementFor(entry, symbols ++ treeSymbols)
+        engagementFor(cfg, entry, symbols ++ treeSymbols)
       )
       _ <- logger.debug(
         s"${entry.author}: ${entry.body} | ${sentiments
@@ -166,9 +180,11 @@ object RedditScraper extends Reddit with Cfg with Market {
   }
 }
 
-object Scraper extends Cfg {
+object Scraper {
   def run(xa: HikariTransactor[IO]): IO[ExitCode] =
-    RedditScraper
-      .loop(xa, cfg.reddit.secret, cfg.reddit.username)
-      .as(ExitCode.Success)
+    for {
+      cfg <- Config.cfg
+      _ <- RedditScraper
+        .loop(xa, cfg.reddit.secret, cfg.reddit.username)
+    } yield ExitCode.Success
 }

@@ -1,6 +1,7 @@
 package app.paperhands.handlers.paperhands
 
 import app.paperhands.chart._
+import app.paperhands.config.Config
 import app.paperhands.io.Logger
 import app.paperhands.market.Market
 import app.paperhands.model
@@ -31,12 +32,16 @@ case class QuoteTrending(
     popularity: Int
 )
 
-object Desc extends Market {
-  def find(symb: String) =
+object Desc {
+  import Market.Market
+
+  def find(market: Market, symb: String) =
     market.find(_.symbol == symb).map(_.desc)
 }
 
 object QuoteTrending {
+  import Market.Market
+
   def oldPos(symb: String, list: List[model.Trending]) =
     list.indexWhere(_.symbol == symb)
 
@@ -54,13 +59,14 @@ object QuoteTrending {
   }
 
   def fromTrending(
+      market: Market,
       previous: List[model.Trending],
       present: List[model.Trending]
   ): List[QuoteTrending] =
     present.zipWithIndex.map { case (t, index) =>
       QuoteTrending(
         t.symbol,
-        Desc.find(t.symbol),
+        Desc.find(market, t.symbol),
         changePerc(t.symbol, t.popularity, previous),
         index,
         oldPos(t.symbol, previous),
@@ -81,7 +87,10 @@ case class QuoteDetails(
 )
 
 object QuoteDetails {
+  import Market.Market
+
   def fromQueryResults(
+      market: Market,
       symbol: String,
       yahooResponse: YahooResponse,
       price: List[model.TimeSeries],
@@ -96,7 +105,7 @@ object QuoteDetails {
 
     QuoteDetails(
       symbol,
-      Desc.find(symbol),
+      Desc.find(market, symbol),
       yahooResponse.price,
       Chart.fromTimeSeries(mentions),
       Chart.fromTimeSeries(engagements),
@@ -109,19 +118,21 @@ object QuoteDetails {
 
 case class QuoteSearchResult(symbol: String, desc: String)
 
-object SearchQuote extends Market {
+object SearchQuote {
+  import Market.Market
+
   val descSearchLimit = 20
   val overallLimit = 50
   val descRatioCutoff = 70
 
-  def findBySymbol(term: String) = {
+  def findBySymbol(market: Market, term: String) = {
     val lowerTerm = term.toLowerCase
 
     market
       .filter(t => t.symbol.toLowerCase.contains(lowerTerm))
   }
 
-  def findByDesc(term: String) = {
+  def findByDesc(market: Market, term: String) = {
     val lowerTerm = term.toLowerCase
 
     market
@@ -137,8 +148,8 @@ object SearchQuote extends Market {
       .map(_._2)
   }
 
-  def find(term: String) =
-    (findBySymbol(term) ++ findByDesc(term))
+  def find(market: Market, term: String) =
+    (findBySymbol(market, term) ++ findByDesc(market, term))
       .map(t => QuoteSearchResult(t.symbol, t.desc))
       .distinct
       .take(overallLimit)
@@ -201,13 +212,15 @@ object Handler extends Encoders {
     val prevEnd = toInstant(now.minusDays(days))
 
     for {
+      cfg <- Config.cfg
+      market <- Market.market(cfg)
       previous <- Storage
         .getTrending(prevStart, prevEnd, 50)
         .transact(xa)
       present <- Storage
         .getTrending(start, end, 50)
         .transact(xa)
-    } yield QuoteTrending.fromTrending(previous, present).take(20)
+    } yield QuoteTrending.fromTrending(market, previous, present).take(20)
   }
 
   def fetchDBDataForDetails(
@@ -248,6 +261,8 @@ object Handler extends Encoders {
     val bucket = periodToBucket(period)
 
     for {
+      cfg <- Config.cfg
+      market <- Market.market(cfg)
       yahooResponse <- Yahoo.scrape(symbol)
       dbData <- fetchDBDataForDetails(
         symbol,
@@ -257,6 +272,7 @@ object Handler extends Encoders {
       ).transact(xa)
     } yield QuoteDetails
       .fromQueryResults(
+        market,
         symbol,
         yahooResponse,
         List(),
@@ -277,7 +293,10 @@ object Handler extends Encoders {
     Storage.getUnlabeledContent(limit).transact(xa)
 
   def findQuotes(term: String): IO[List[QuoteSearchResult]] =
-    IO.pure(SearchQuote.find(term))
+    for {
+      cfg <- Config.cfg
+      market <- Market.market(cfg)
+    } yield SearchQuote.find(market, term)
 
   def labelContent(
       xa: HikariTransactor[IO],

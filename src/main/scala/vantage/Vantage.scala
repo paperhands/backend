@@ -1,6 +1,6 @@
 package app.paperhands.vantage
 
-import app.paperhands.config.Cfg
+import app.paperhands.config.Config
 import app.paperhands.format.Parse
 import app.paperhands.io.HttpBackend
 import app.paperhands.io.Logger
@@ -83,11 +83,10 @@ trait Decoders {
     )
 }
 
-object Vantage extends HttpBackend with Cfg with Decoders {
+object Vantage extends HttpBackend with Decoders {
   val logger = Logger("vantage-api")
 
   val ua = "Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0"
-  val apiKey = cfg.vantage.api_key
 
   def mapTimeFrame(timeFrame: String) =
     timeFrame match {
@@ -96,6 +95,7 @@ object Vantage extends HttpBackend with Cfg with Decoders {
     }
 
   def constructUri(
+      apiKey: String,
       symbol: String,
       timeFrame: String
   ) =
@@ -133,13 +133,17 @@ object Vantage extends HttpBackend with Cfg with Decoders {
     }
 
   def priceData(symbol: String, period: String): IO[List[model.TimeSeries]] = {
-    val uri = constructUri(symbol, period)
-    val request = constructRequest(uri)
 
     client.use { client =>
-      client
-        .expect(request)(jsonOf[IO, VantageResponse])
-        .map(_.toTimeSeries(symbol))
+      for {
+        cfg <- Config.cfg
+        request <- IO.pure(
+          constructRequest(constructUri(cfg.vantage.api_key, symbol, period))
+        )
+        result <- client
+          .expect(request)(jsonOf[IO, VantageResponse])
+          .map(_.toTimeSeries(symbol))
+      } yield result
     }
   }
 }

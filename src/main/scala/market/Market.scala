@@ -1,6 +1,6 @@
 package app.paperhands.market
 
-import app.paperhands.config.Cfg
+import app.paperhands.config.Config
 import app.paperhands.io.Logger
 import cats.effect._
 import cats.implicits._
@@ -16,11 +16,9 @@ case class Ticket(
     isIgnored: Boolean
 )
 
-trait Market {
-  val market: List[Ticket] = Market.market
-}
+object Market {
+  type Market = List[Ticket]
 
-object Market extends Cfg {
   val logger = Logger("market-data")
 
   val files = List("nasdaqlisted.txt", "otherlisted.txt", "custom.txt")
@@ -32,32 +30,36 @@ object Market extends Cfg {
       re.replaceAllIn(desc, "")
     }
 
-  def isException(symb: String): Boolean =
+  def isException(cfg: Config, symb: String): Boolean =
     cfg.market.exceptions.find(_ == symb).isDefined
 
-  def isIgnored(symb: String): Boolean =
+  def isIgnored(cfg: Config, symb: String): Boolean =
     cfg.market.ignores.find(_ == symb).isDefined
 
-  def parseCsv(csv: String) =
+  def parseCsv(cfg: Config)(csv: String) =
     Stream
       .emits(csv)
       .through(rows[IO]('|'))
       .map(l => List(l.get(0), l.get(1)).sequence)
       .collect {
         case Some(List(s, d)) if s != "Symbol" =>
-          Ticket(s, cleanupDescription(d), isException(s), isIgnored(s))
+          Ticket(
+            s,
+            cleanupDescription(d),
+            isException(cfg, s),
+            isIgnored(cfg, s)
+          )
       }
       .compile
       .toList
 
-  def readFile(f: String) =
+  def readFile(cfg: Config)(f: String) =
     logger.info(s"reading market data from $f") >>
       IO(Source.fromResource(s"data/$f").mkString) >>=
-      parseCsv
+      parseCsv(cfg)
 
-  def load: IO[List[Ticket]] =
-    files.traverse(readFile).map(_.flatten)
+  def load(cfg: Config): IO[List[Ticket]] =
+    files.traverse(readFile(cfg)).map(_.flatten)
 
-  import cats.effect.unsafe.implicits.global
-  val market = load.unsafeRunSync
+  def market(cfg: Config) = load(cfg)
 }

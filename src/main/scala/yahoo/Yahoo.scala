@@ -1,6 +1,5 @@
 package app.paperhands.yahoo
 
-import app.paperhands.config.Cfg
 import app.paperhands.io.HttpBackend
 import app.paperhands.io.Logger
 import cats.effect._
@@ -19,7 +18,7 @@ case class YahooResponse(
     price: Double
 )
 
-object Yahoo extends HttpBackend with Cfg {
+object Yahoo extends HttpBackend {
   val logger = Logger("yahoo")
 
   val ua = "Mozilla/5.0 (Android 4.4; Mobile; rv:41.0) Gecko/41.0 Firefox/41.0"
