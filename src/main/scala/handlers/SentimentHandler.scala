@@ -313,6 +313,6 @@ class Handler(xa: HikariTransactor[IO], cfg: Config, market: Market.Market)
     case GET -> Root / "content" / "unlabeled" / limit =>
       Ok(getUnlabeledContent(xa, limit.toInt))
     case PUT -> Root / "content" / "label" / contentID / label =>
-      Ok(labelContent(xa, contentID, label.toInt))
+      Ok(labelContent(contentID, label.toInt))
   }
 }
