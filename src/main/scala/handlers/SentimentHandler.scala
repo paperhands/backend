@@ -264,14 +264,13 @@ object Handler extends Encoders {
     val bucket = periodToBucket(period)
 
     for {
-      yahooF <- Yahoo.scrape(symbol).start
+      yahooResponse <- Yahoo.scrape(symbol)
       dbData <- fetchDBDataForDetails(
         symbol,
         bucket,
         start,
         end
       ).transact(xa)
-      yahooResponse <- yahooF.join
     } yield QuoteDetails
       .fromQueryResults(
         symbol,
