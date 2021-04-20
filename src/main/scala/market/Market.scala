@@ -36,10 +36,10 @@ object Market {
   def isIgnored(cfg: Config, symb: String): Boolean =
     cfg.market.ignores.find(_ == symb).isDefined
 
-  def parseCsv(cfg: Config)(csv: String) =
+  def parseCsv(cfg: Config)(csv: String): List[Ticket] =
     Stream
-      .emits(csv)
-      .through(rows[IO]('|'))
+      .emit(csv)
+      .through(lowlevel.rows[Fallible, String]('|'))
       .map(l => List(l.get(0), l.get(1)).sequence)
       .collect {
         case Some(List(s, d)) if s != "Symbol" =>
@@ -52,11 +52,13 @@ object Market {
       }
       .compile
       .toList
+      .getOrElse(List())
 
-  def readFile(cfg: Config)(f: String) =
+  def readFile(cfg: Config)(f: String): IO[List[Ticket]] =
     logger.info(s"reading market data from $f") >>
-      IO(Source.fromResource(s"data/$f").mkString) >>=
-      parseCsv(cfg)
+      IO(Source.fromResource(s"data/$f").mkString) >>= { data =>
+      IO.pure(parseCsv(cfg)(data))
+    }
 
   def load(cfg: Config): IO[List[Ticket]] =
     files.traverse(readFile(cfg)).map(_.flatten)

@@ -43,10 +43,10 @@ object Export {
       )
     )
 
-  def writeStream(stream: Stream[IO, Row], f: String) =
+  def writeStream(stream: Stream[IO, Row], f: String): IO[Unit] =
     stream
-      .through(writeWithHeaders(header))
-      .through(toRowStrings(separator = ',', newline = "\n"))
+      .through(lowlevel.writeWithHeaders(header))
+      .through(lowlevel.toRowStrings(separator = ',', newline = "\n"))
       .through(text.utf8Encode)
       .through(writeAll(Paths.get(f)))
       .compile
