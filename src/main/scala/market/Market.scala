@@ -36,7 +36,7 @@ object Market {
   def isIgnored(cfg: Config, symb: String): Boolean =
     cfg.market.ignores.find(_ == symb).isDefined
 
-  def parseCsv(cfg: Config)(csv: String): List[Ticket] =
+  def parseCsv(cfg: Config)(csv: String): Market =
     Stream
       .emit(csv)
       .through(lowlevel.rows[Fallible, String]('|'))
@@ -54,13 +54,13 @@ object Market {
       .toList
       .getOrElse(List())
 
-  def readFile(cfg: Config)(f: String): IO[List[Ticket]] =
+  def readFile(cfg: Config)(f: String): IO[Market] =
     logger.info(s"reading market data from $f") >>
       IO(Source.fromResource(s"data/$f").mkString) >>= { data =>
       IO.pure(parseCsv(cfg)(data))
     }
 
-  def load(cfg: Config): IO[List[Ticket]] =
+  def load(cfg: Config): IO[Market] =
     files.traverse(readFile(cfg)).map(_.flatten)
 
   def market(cfg: Config) = load(cfg)
