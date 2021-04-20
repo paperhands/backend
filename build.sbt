@@ -1,5 +1,5 @@
 val _scalaVersion = "2.13.5"
-val circeVersion = "0.14.0-M4"
+val circeVersion = "0.14.0-M5"
 val http4sVersion = "1.0.0-M21"
 val catsVersion = "2.5.0"
 val catsEffVersion = "3.0.2"
