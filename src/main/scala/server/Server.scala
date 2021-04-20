@@ -1,6 +1,7 @@
 package app.paperhands.server
 
 import app.paperhands.config.Config
+import app.paperhands.market.Market
 import app.paperhands.handlers.paperhands
 import cats.effect._
 import doobie.hikari.HikariTransactor
@@ -10,22 +11,20 @@ import org.http4s.server.blaze._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Server {
-  def httpApp(xa: HikariTransactor[IO]) = Router(
-    "/api/v1" -> paperhands.Handler.paperhandsService(xa)
-  ).orNotFound
+class Server(xa: HikariTransactor[IO], cfg: Config, market: Market.Market) {
+  def httpApp =
+    Router(
+      "/api/v1" -> new paperhands.Handler(xa, cfg, market).paperhandsService
+    ).orNotFound
 
-  def serverBuilder(xa: HikariTransactor[IO], cfg: Config) =
+  def serverBuilder =
     BlazeServerBuilder[IO](global)
       .bindHttp(cfg.http.port, cfg.http.host)
-      .withHttpApp(httpApp(xa))
+      .withHttpApp(httpApp)
 
-  def start(xa: HikariTransactor[IO], cfg: Config) =
-    serverBuilder(xa, cfg).resource.use(_ => IO.never)
+  def start =
+    serverBuilder.resource.use(_ => IO.never)
 
-  def run(xa: HikariTransactor[IO]): IO[ExitCode] =
-    for {
-      cfg <- Config.cfg
-      exit <- start(xa, cfg).as(ExitCode.Success)
-    } yield exit
+  def run: IO[ExitCode] =
+    start.as(ExitCode.Success)
 }

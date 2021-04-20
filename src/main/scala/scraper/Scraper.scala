@@ -13,7 +13,7 @@ import doobie.hikari.HikariTransactor
 import doobie.implicits._
 import monocle.macros.syntax.all._
 
-object RedditScraper extends Reddit {
+class RedditScraper(cfg: Config, market: Market.Market) extends Reddit {
   import Market.Market
 
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
@@ -25,7 +25,6 @@ object RedditScraper extends Reddit {
       url: String
   ): IO[String] =
     for {
-      cfg <- Config.cfg
       out <- OCR
         .processURL(cfg, url)
         .handleErrorWith(e =>
@@ -65,7 +64,6 @@ object RedditScraper extends Reddit {
   def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
     for {
       out <- processURLs(xa, collectAllImageUrls(e))
-      market <- Market.market
       _ <- process(xa, cfg, market, e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 
@@ -180,10 +178,13 @@ object RedditScraper extends Reddit {
 }
 
 object Scraper {
-  def run(xa: HikariTransactor[IO]): IO[ExitCode] =
+  def run(
+      xa: HikariTransactor[IO],
+      cfg: Config,
+      market: Market.Market
+  ): IO[ExitCode] =
     for {
-      cfg <- Config.cfg
-      _ <- RedditScraper
+      _ <- new RedditScraper(cfg, market)
         .loop(xa, cfg.reddit.secret, cfg.reddit.username)
     } yield ExitCode.Success
 }

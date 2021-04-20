@@ -169,7 +169,8 @@ trait Encoders {
     jsonEncoderOf[IO, Int]
 }
 
-object Handler extends Encoders {
+class Handler(xa: HikariTransactor[IO], cfg: Config, market: Market.Market)
+    extends Encoders {
   val logger = Logger("sentiment-handler")
 
   def toInstant(in: LocalDateTime) =
@@ -212,7 +213,6 @@ object Handler extends Encoders {
     val prevEnd = toInstant(now.minusDays(days))
 
     for {
-      market <- Market.market
       previous <- Storage
         .getTrending(prevStart, prevEnd, 50)
         .transact(xa)
@@ -291,18 +291,15 @@ object Handler extends Encoders {
     Storage.getUnlabeledContent(limit).transact(xa)
 
   def findQuotes(term: String): IO[List[QuoteSearchResult]] =
-    for {
-      market <- Market.market
-    } yield SearchQuote.find(market, term)
+    IO.pure(SearchQuote.find(market, term))
 
   def labelContent(
-      xa: HikariTransactor[IO],
       contentID: String,
       label: Int
   ): IO[Int] =
     Storage.createLabel(contentID, label).transact(xa)
 
-  def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
+  def paperhandsService = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "search" / term =>
       Ok(findQuotes(term))
     case GET -> Root / "quote" / "trending" / period =>
