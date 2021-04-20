@@ -1,15 +1,6 @@
 package app.paperhands.io
 
-import cats._
 import cats.effect._
-import cats.implicits._
-
-import cats._
-import cats.effect._
-import cats.implicits._
-
-import scala.concurrent._
-
 import com.typesafe.scalalogging
 
 case class LoggerWrapper(logger: scalalogging.Logger) {
@@ -32,7 +23,6 @@ object Logger {
 
 trait HttpBackend {
   import org.http4s.client.blaze._
-  import org.http4s.client._
   import scala.concurrent.ExecutionContext.global
 
   val client = BlazeClientBuilder[IO](global).resource

@@ -1,21 +1,15 @@
 package app.paperhands.storage
 
-import java.time.Instant
-
 import app.paperhands.config.Cfg
 import app.paperhands.model
-
-import doobie._
-import doobie.implicits._
-import doobie.hikari._
-
-import cats._
 import cats.effect._
 import cats.implicits._
-
+import doobie._
+import doobie.hikari._
+import doobie.implicits._
 import fs2._
 
-import scala.concurrent._
+import java.time.Instant
 
 trait ConnectionPool {
   val transactor = ConnectionPool.transactor

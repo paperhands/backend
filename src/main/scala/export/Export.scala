@@ -1,22 +1,16 @@
 package app.paperhands.export
 
-import cats._
-import cats.effect._
-import cats.implicits._
+import app.paperhands.io.Logger
+import app.paperhands.model
+import app.paperhands.storage.Storage
 import cats.data._
-
+import cats.effect._
+import doobie.hikari.HikariTransactor
+import doobie.implicits._
 import fs2._
 import fs2.data.csv._
 import fs2.io.file._
-import java.nio.file.Paths
 
-import doobie._
-import doobie.implicits._
-import doobie.hikari.HikariTransactor
-
-import app.paperhands.io.Logger
-import app.paperhands.storage.Storage
-import app.paperhands.model
 import java.nio.file.Paths
 
 object Export {

@@ -1,24 +1,19 @@
 package app.paperhands.yahoo
 
-import cats._
+import app.paperhands.config.Cfg
+import app.paperhands.io.HttpBackend
+import app.paperhands.io.Logger
 import cats.effect._
 import cats.implicits._
-
-import org.http4s._
-import org.http4s.implicits._
-import org.http4s.client.dsl.io._
-import org.http4s.headers._
+import net.ruippeixotog.scalascraper.browser.JsoupBrowser
+import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
+import net.ruippeixotog.scalascraper.dsl.DSL._
 import org.http4s.MediaType
 import org.http4s.Method._
-
-import app.paperhands.model
-import app.paperhands.config.Cfg
-import app.paperhands.io.{Logger, HttpBackend}
-
-import net.ruippeixotog.scalascraper.browser.JsoupBrowser
-import net.ruippeixotog.scalascraper.dsl.DSL._
-import net.ruippeixotog.scalascraper.dsl.DSL.Extract._
-import net.ruippeixotog.scalascraper.dsl.DSL.Parse._
+import org.http4s._
+import org.http4s.client.dsl.io._
+import org.http4s.headers._
+import org.http4s.implicits._
 
 case class YahooResponse(
     price: Double

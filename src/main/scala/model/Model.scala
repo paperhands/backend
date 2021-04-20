@@ -1,13 +1,14 @@
 package app.paperhands.model
 
-import doobie._
-import doobie.implicits._
-import org.postgresql.util.PGobject
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
+import app.paperhands.reddit.Entry
 import io.circe.generic.JsonCodec
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
+import org.postgresql.util.PGobject
+
 import java.time.Instant
 import java.time.ZoneId
-import app.paperhands.reddit.Entry
 import java.time.ZoneOffset
 
 trait DoobieMetas {

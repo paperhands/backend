@@ -1,23 +1,20 @@
 package app.paperhands.vantage
 
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-
-import org.http4s._
-import org.http4s.implicits._
-import org.http4s.client.dsl.io._
-import org.http4s.headers._
+import app.paperhands.config.Cfg
+import app.paperhands.format.Parse
+import app.paperhands.io.HttpBackend
+import app.paperhands.io.Logger
+import app.paperhands.model
+import cats.effect._
+import io.circe._
+import io.circe.parser._
 import org.http4s.MediaType
 import org.http4s.Method._
+import org.http4s._
 import org.http4s.circe._
-
-import cats._
-import cats.effect._
-import cats.implicits._
-
-import app.paperhands.model
-import app.paperhands.config.Cfg
-import app.paperhands.io.{Logger, HttpBackend}
-import app.paperhands.format.Parse
+import org.http4s.client.dsl.io._
+import org.http4s.headers._
+import org.http4s.implicits._
 
 case class VantageResponse(
     meta: VantageMeta,

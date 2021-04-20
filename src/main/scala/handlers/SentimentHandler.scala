@@ -1,42 +1,26 @@
 package app.paperhands.handlers.paperhands
 
-import java.time.Instant
-
-import cats._
+import app.paperhands.chart._
+import app.paperhands.io.Logger
+import app.paperhands.market.Market
+import app.paperhands.model
+import app.paperhands.storage.Storage
+import app.paperhands.yahoo._
 import cats.effect._
 import cats.implicits._
-
-import org.http4s._
-import org.http4s.dsl.io._
-import org.http4s.server.blaze._
-import org.http4s.implicits._
-import org.http4s.circe._
-
-import app.paperhands.model
-import app.paperhands.chart._
-import app.paperhands.market.{Ticket, Market}
-import app.paperhands.storage.{Storage}
-import app.paperhands.vantage.Vantage
-import app.paperhands.yahoo._
-
-import java.util.Calendar
-import java.time.LocalDateTime
-
 import doobie._
-import doobie.util.meta._
-import java.time.ZoneId
-
-import io.circe.literal._
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-import io.circe.generic.JsonCodec
-
-import app.paperhands.io.Logger
-
-import doobie._
-import doobie.implicits._
 import doobie.hikari.HikariTransactor
-
+import doobie.implicits._
+import io.circe.generic.auto._
+import io.circe.literal._
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import org.http4s._
+import org.http4s.circe._
+import org.http4s.dsl.io._
+
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 case class QuoteTrending(
     symbol: String,

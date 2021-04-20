@@ -2,18 +2,13 @@ package app.paperhands.server
 
 import app.paperhands.config.Cfg
 import app.paperhands.handlers.paperhands
-
-import cats._
 import cats.effect._
-import cats.implicits._
-
-import org.http4s._
-import org.http4s.dsl.io._
-import org.http4s.server.blaze._
+import doobie.hikari.HikariTransactor
 import org.http4s.implicits._
 import org.http4s.server.Router
+import org.http4s.server.blaze._
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import doobie.hikari.HikariTransactor
 
 object Server extends Cfg {
   def httpApp(xa: HikariTransactor[IO]) = Router(

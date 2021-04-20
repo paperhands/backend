@@ -1,28 +1,17 @@
 package app.paperhands.scraper
 
-import app.paperhands.reddit.{Reddit, Entry}
-import app.paperhands.config.{Config, Cfg}
+import app.paperhands.config.Cfg
 import app.paperhands.market.Market
-import app.paperhands.ocr.OCR
 import app.paperhands.model
+import app.paperhands.ocr.OCR
+import app.paperhands.reddit.Entry
+import app.paperhands.reddit.Reddit
 import app.paperhands.storage.Storage
-import app.paperhands.io.Logger
-
-import java.util.concurrent.Executors
-
-import cats._
 import cats.effect._
 import cats.implicits._
-
-import doobie._
-import doobie.implicits._
-import doobie.util.ExecutionContexts
-
-import monocle.macros.syntax.all._
 import doobie.hikari.HikariTransactor
-
-import scala.concurrent._
-import java.util.concurrent.ExecutorService
+import doobie.implicits._
+import monocle.macros.syntax.all._
 
 object RedditScraper extends Reddit with Cfg with Market {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r

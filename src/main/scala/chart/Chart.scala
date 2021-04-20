@@ -1,7 +1,7 @@
 package app.paperhands.chart
 
-import app.paperhands.model
 import app.paperhands.format.Format
+import app.paperhands.model
 
 case class Spot(x: Int, y: Int)
 

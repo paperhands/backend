@@ -1,9 +1,8 @@
 package app.paperhands.concurrent
 
-import cats._
 import cats.effect._
-import cats.implicits._
 import cats.effect.std.Queue
+import cats.implicits._
 
 // Unbound channel implementation
 final class Chan[A](ref: Ref[IO, Int], q: Queue[IO, A]) {

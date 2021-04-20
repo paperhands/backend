@@ -1,16 +1,11 @@
 package app.paperhands.flyway
 
-import cats._
+import app.paperhands.io.Logger
 import cats.effect._
-import cats.implicits._
-
-import doobie.hikari.HikariTransactor
 import com.zaxxer.hikari.HikariDataSource
-import javax.sql.DataSource
+import doobie.hikari.HikariTransactor
 import org.flywaydb.core.Flyway
 import org.flywaydb.core.internal.info.MigrationInfoDumper
-import app.paperhands.config.{Config, Cfg}
-import app.paperhands.io.Logger
 
 object MyFlyway {
   val logger = Logger("flyway")

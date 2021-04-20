@@ -1,16 +1,12 @@
 package app.paperhands.config
 
-import scala.io.Source
-import io.circe._
+import app.paperhands.io.Logger
+import cats.effect._
+import cats.implicits._
 import io.circe.generic.auto._
 import io.circe.yaml
 
-import cats._
-import cats.effect._
-import cats.implicits._
-import cats.syntax._
-
-import app.paperhands.io.Logger
+import scala.io.Source
 
 case class Config(
     reddit: Reddit,

@@ -1,26 +1,16 @@
 package app.paperhands.ocr
-import sys.process._
-import java.io.File
-
-import fs2._
-import fs2.io.file._
-import java.nio.file.Paths
-
-import org.http4s._
-import org.http4s.implicits._
-import org.http4s.client.dsl.io._
-import org.http4s.headers._
-import org.http4s.MediaType
-import org.http4s.Method._
-
-import cats._
+import app.paperhands.config.Cfg
+import app.paperhands.io.HttpBackend
+import app.paperhands.io.Logger
 import cats.effect._
 import cats.implicits._
+import fs2.io.file._
+import org.http4s._
 
-import scala.concurrent._
+import java.io.File
+import java.nio.file.Paths
 
-import app.paperhands.io.{Logger, HttpBackend}
-import app.paperhands.config.Cfg
+import sys.process._
 
 object OCR extends HttpBackend with Cfg {
   val logger = Logger("ocr")

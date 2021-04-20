@@ -1,19 +1,13 @@
 package app.paperhands.market
 
-import scala.io.Source
-
-import cats._
-import cats.effect._
-import cats.implicits._
-import cats.syntax._
-
-import fs2._
-import fs2.io.file._
-import fs2.data.csv._
-import java.nio.file.{Files, Paths}
-
 import app.paperhands.config.Cfg
 import app.paperhands.io.Logger
+import cats.effect._
+import cats.implicits._
+import fs2._
+import fs2.data.csv._
+
+import scala.io.Source
 
 case class Ticket(
     symbol: String,
