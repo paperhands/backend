@@ -1,43 +1,27 @@
 package app.paperhands.handlers.paperhands
 
-import java.time.Instant
-
-import cats._
+import app.paperhands.chart._
+import app.paperhands.config.Config
+import app.paperhands.io.Logger
+import app.paperhands.market.Market
+import app.paperhands.model
+import app.paperhands.storage.Storage
+import app.paperhands.yahoo._
 import cats.effect._
 import cats.implicits._
-
-import org.http4s._
-import org.http4s.dsl.io._
-import org.http4s.server.blaze._
-import org.http4s.implicits._
-import org.http4s.circe._
-
-import app.paperhands.model
-import app.paperhands.chart._
-import app.paperhands.market.{Ticket, Market}
-import app.paperhands.storage.{Storage}
-import app.paperhands.io.AddContextShift
-import app.paperhands.vantage.Vantage
-import app.paperhands.yahoo._
-
-import java.util.Calendar
-import java.time.LocalDateTime
-
 import doobie._
-import doobie.util.meta._
-import java.time.ZoneId
-
-import io.circe.literal._
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
-import io.circe.generic.JsonCodec
-
-import app.paperhands.io.Logger
-
-import doobie._
-import doobie.implicits._
 import doobie.hikari.HikariTransactor
-
+import doobie.implicits._
+import io.circe.generic.auto._
+import io.circe.literal._
 import me.xdrop.fuzzywuzzy.FuzzySearch
+import org.http4s._
+import org.http4s.circe._
+import org.http4s.dsl.io._
+
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 case class QuoteTrending(
     symbol: String,
@@ -48,12 +32,16 @@ case class QuoteTrending(
     popularity: Int
 )
 
-object Desc extends Market {
-  def find(symb: String) =
+object Desc {
+  import Market.Market
+
+  def find(market: Market, symb: String) =
     market.find(_.symbol == symb).map(_.desc)
 }
 
 object QuoteTrending {
+  import Market.Market
+
   def oldPos(symb: String, list: List[model.Trending]) =
     list.indexWhere(_.symbol == symb)
 
@@ -71,13 +59,14 @@ object QuoteTrending {
   }
 
   def fromTrending(
+      market: Market,
       previous: List[model.Trending],
       present: List[model.Trending]
   ): List[QuoteTrending] =
     present.zipWithIndex.map { case (t, index) =>
       QuoteTrending(
         t.symbol,
-        Desc.find(t.symbol),
+        Desc.find(market, t.symbol),
         changePerc(t.symbol, t.popularity, previous),
         index,
         oldPos(t.symbol, previous),
@@ -98,7 +87,10 @@ case class QuoteDetails(
 )
 
 object QuoteDetails {
+  import Market.Market
+
   def fromQueryResults(
+      market: Market,
       symbol: String,
       yahooResponse: YahooResponse,
       price: List[model.TimeSeries],
@@ -113,7 +105,7 @@ object QuoteDetails {
 
     QuoteDetails(
       symbol,
-      Desc.find(symbol),
+      Desc.find(market, symbol),
       yahooResponse.price,
       Chart.fromTimeSeries(mentions),
       Chart.fromTimeSeries(engagements),
@@ -126,19 +118,21 @@ object QuoteDetails {
 
 case class QuoteSearchResult(symbol: String, desc: String)
 
-object SearchQuote extends Market {
+object SearchQuote {
+  import Market.Market
+
   val descSearchLimit = 20
   val overallLimit = 50
   val descRatioCutoff = 70
 
-  def findBySymbol(term: String) = {
+  def findBySymbol(market: Market, term: String) = {
     val lowerTerm = term.toLowerCase
 
     market
       .filter(t => t.symbol.toLowerCase.contains(lowerTerm))
   }
 
-  def findByDesc(term: String) = {
+  def findByDesc(market: Market, term: String) = {
     val lowerTerm = term.toLowerCase
 
     market
@@ -154,8 +148,8 @@ object SearchQuote extends Market {
       .map(_._2)
   }
 
-  def find(term: String) =
-    (findBySymbol(term) ++ findByDesc(term))
+  def find(market: Market, term: String) =
+    (findBySymbol(market, term) ++ findByDesc(market, term))
       .map(t => QuoteSearchResult(t.symbol, t.desc))
       .distinct
       .take(overallLimit)
@@ -175,7 +169,8 @@ trait Encoders {
     jsonEncoderOf[IO, Int]
 }
 
-object Handler extends Encoders with AddContextShift {
+class Handler(xa: HikariTransactor[IO], cfg: Config, market: Market.Market)
+    extends Encoders {
   val logger = Logger("sentiment-handler")
 
   def toInstant(in: LocalDateTime) =
@@ -224,7 +219,7 @@ object Handler extends Encoders with AddContextShift {
       present <- Storage
         .getTrending(start, end, 50)
         .transact(xa)
-    } yield QuoteTrending.fromTrending(previous, present).take(20)
+    } yield QuoteTrending.fromTrending(market, previous, present).take(20)
   }
 
   def fetchDBDataForDetails(
@@ -265,16 +260,17 @@ object Handler extends Encoders with AddContextShift {
     val bucket = periodToBucket(period)
 
     for {
-      yahooF <- Yahoo.scrape(symbol).start
+      market <- Market.market
+      yahooResponse <- Yahoo.scrape(symbol)
       dbData <- fetchDBDataForDetails(
         symbol,
         bucket,
         start,
         end
       ).transact(xa)
-      yahooResponse <- yahooF.join
     } yield QuoteDetails
       .fromQueryResults(
+        market,
         symbol,
         yahooResponse,
         List(),
@@ -295,16 +291,15 @@ object Handler extends Encoders with AddContextShift {
     Storage.getUnlabeledContent(limit).transact(xa)
 
   def findQuotes(term: String): IO[List[QuoteSearchResult]] =
-    IO.pure(SearchQuote.find(term))
+    IO.pure(SearchQuote.find(market, term))
 
   def labelContent(
-      xa: HikariTransactor[IO],
       contentID: String,
       label: Int
   ): IO[Int] =
     Storage.createLabel(contentID, label).transact(xa)
 
-  def paperhandsService(xa: HikariTransactor[IO]) = HttpRoutes.of[IO] {
+  def paperhandsService = HttpRoutes.of[IO] {
     case GET -> Root / "quote" / "search" / term =>
       Ok(findQuotes(term))
     case GET -> Root / "quote" / "trending" / period =>
@@ -318,6 +313,6 @@ object Handler extends Encoders with AddContextShift {
     case GET -> Root / "content" / "unlabeled" / limit =>
       Ok(getUnlabeledContent(xa, limit.toInt))
     case PUT -> Root / "content" / "label" / contentID / label =>
-      Ok(labelContent(xa, contentID, label.toInt))
+      Ok(labelContent(contentID, label.toInt))
   }
 }

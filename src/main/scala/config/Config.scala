@@ -1,16 +1,12 @@
 package app.paperhands.config
 
-import scala.io.Source
-import io.circe._
+import app.paperhands.io.Logger
+import cats.effect._
+import cats.implicits._
 import io.circe.generic.auto._
 import io.circe.yaml
 
-import cats._
-import cats.effect._
-import cats.implicits._
-import cats.syntax._
-
-import app.paperhands.io.Logger
+import scala.io.Source
 
 case class Config(
     reddit: Reddit,
@@ -55,15 +51,11 @@ case class Market(
     ignores: List[String]
 )
 
-trait Cfg {
-  val cfg: Config = Config.cfg
-}
-
 object Config {
   val logger = Logger("main")
 
   def readFile(path: String) =
-    logger.info(s"loading config from $path") *>
+    logger.info(s"loading config from $path") >>
       IO(Source.fromResource(path).mkString)
 
   def parseYaml(contents: String) =
@@ -79,5 +71,5 @@ object Config {
       s"config/$env.yml"
     ) >>= readFile >>= parseYaml
 
-  val cfg = load.unsafeRunSync
+  val cfg = load
 }

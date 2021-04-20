@@ -1,41 +1,28 @@
 package app.paperhands.storage
 
-import java.time.Instant
-
-import app.paperhands.io.AddContextShift
-import app.paperhands.config.Cfg
+import app.paperhands.config.Config
 import app.paperhands.model
-
-import doobie._
-import doobie.implicits._
-import doobie.hikari._
-
-import cats._
 import cats.effect._
 import cats.implicits._
-
+import doobie._
+import doobie.hikari._
+import doobie.implicits._
 import fs2._
 
-import scala.concurrent._
+import java.time.Instant
 
 trait ConnectionPool {
-  val transactor = ConnectionPool.transactor
-}
-
-object ConnectionPool extends Cfg with AddContextShift {
-  val transactor: Resource[IO, HikariTransactor[IO]] =
+  def transactor(cfg: Config): Resource[IO, HikariTransactor[IO]] =
     for {
       ce <- ExecutionContexts.fixedThreadPool[IO](
         cfg.repository.max_conns
       ) // our connect EC
-      be <- Blocker[IO] // our blocking EC
       xa <- HikariTransactor.newHikariTransactor[IO](
         "org.postgresql.Driver",
         s"jdbc:postgresql://${cfg.repository.host}:${cfg.repository.port}/${cfg.repository.database}",
         cfg.repository.user,
         cfg.repository.password,
-        ce, // await connection here
-        be // execute JDBC operations here
+        ce // await connection here
       )
     } yield xa
 }

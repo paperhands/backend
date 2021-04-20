@@ -1,32 +1,30 @@
 package app.paperhands.ocr
-import sys.process._
-import java.io.File
-
-import sttp.client3._
-import sttp.client3.http4s._
-
-import cats._
+import app.paperhands.config.Config
+import app.paperhands.io.HttpBackend
+import app.paperhands.io.Logger
 import cats.effect._
 import cats.implicits._
+import fs2.io.file._
+import org.http4s._
 
-import scala.concurrent._
+import java.io.File
+import java.nio.file.Paths
 
-import app.paperhands.io.{Logger, AddContextShift, HttpBackend}
-import app.paperhands.config.Cfg
+import sys.process._
 
-object OCR extends AddContextShift with HttpBackend with Cfg {
+object OCR extends HttpBackend {
   val logger = Logger("ocr")
   val dpi = "72"
 
-  def newProc(input: String) =
+  def newProc(cfg: Config, input: String) =
     Process(
       Seq(cfg.tesseract.command, input, "stdout", "--dpi", dpi, "-l", "eng"),
       None,
       "OMP_THREAD_LIMIT" -> "1"
     )
 
-  def runTesseract(input: String) =
-    IO(newProc(input).!!)
+  def runTesseract(cfg: Config, input: String) =
+    IO(newProc(cfg, input).!!)
       .handleErrorWith(e =>
         logger
           .error(
@@ -35,38 +33,41 @@ object OCR extends AddContextShift with HttpBackend with Cfg {
           .as("")
       )
 
-  def processFile(input: String): IO[String] =
-    logger.debug(s"processing file $input") *> runTesseract(input)
+  def processFile(cfg: Config, input: String): IO[String] =
+    logger.debug(s"processing file $input") >> runTesseract(cfg, input)
 
   def tmpFile(prefix: String, postfix: String): Resource[IO, File] =
     Resource.make {
       IO(File.createTempFile(prefix, postfix))
     } { f =>
+      val path = f.getAbsolutePath
+
       IO(f.delete())
-        .handleErrorWith(e => logger.error(s"Could not delete tmp file: $e"))
+        .handleErrorWith(e =>
+          logger.error(s"Could not delete tmp file $path: $e")
+        )
         .void
     }
 
-  def constructRequest(
-      url: String,
-      file: File
-  ): Request[Either[String, File], Any with Any] =
-    basicRequest
-      .response(asFile(file))
-      .get(uri"$url")
+  def processURL(cfg: Config, url: String): IO[String] =
+    (tmpFile("ocr-", ".image"), client).tupled.use { case (tmpF, client) =>
+      val path = tmpF.getAbsolutePath
+      val uri = Uri.unsafeFromString(url)
 
-  def shouldProcess(response: Response[Either[String, File]]) =
-    response
-      .header("Content-Type")
-      .filter(_.startsWith("image/"))
-      .isDefined
-
-  def processURL(url: String): IO[String] =
-    (tmpFile("ocr-", ".image"), backend).tupled.use { case (tmpF, backend) =>
-      logger.info(s"processing url $url -> ${tmpF.getAbsolutePath}") *>
-        constructRequest(url, tmpF)
-          .send(backend)
-          .map(shouldProcess)
-          .ifM(processFile(tmpF.getAbsolutePath), IO.pure(""))
+      logger.info(s"processing url $url -> $path") >>
+        client
+          .get[Boolean](uri)(response =>
+            response.contentType
+              .filter(_.mediaType.isImage)
+              .map(_ =>
+                response.body
+                  .through(writeAll(Paths.get(path)))
+                  .compile
+                  .drain
+                  .as(true)
+              )
+              .getOrElse(IO.pure(false))
+          )
+          .ifM(processFile(cfg, path), IO.pure(""))
     }
 }

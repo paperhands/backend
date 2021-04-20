@@ -1,43 +1,48 @@
 package app.paperhands.scraper
 
-import app.paperhands.reddit.{Reddit, Entry}
-import app.paperhands.config.{Config, Cfg}
+import app.paperhands.config.Config
 import app.paperhands.market.Market
-import app.paperhands.ocr.OCR
 import app.paperhands.model
+import app.paperhands.ocr.OCR
+import app.paperhands.reddit.Entry
+import app.paperhands.reddit.Reddit
 import app.paperhands.storage.Storage
-import app.paperhands.io.Logger
-
-import java.util.concurrent.Executors
-
-import cats._
 import cats.effect._
 import cats.implicits._
-
-import doobie._
-import doobie.implicits._
-import doobie.util.ExecutionContexts
-
-import monocle.macros.syntax.all._
 import doobie.hikari.HikariTransactor
+import doobie.implicits._
+import monocle.macros.syntax.all._
 
-import scala.concurrent._
-import java.util.concurrent.ExecutorService
-
-object RedditScraper extends Reddit with Cfg with Market {
+object ImgExtraction {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
-  override val cs: ContextShift[IO] = IO.contextShift(
-    ExecutionContext.fromExecutorService(
-      Executors.newFixedThreadPool(cfg.reddit.thread_pool)
-    )
-  )
 
-  def runOcrAndSaveResult(xa: HikariTransactor[IO], url: String): IO[String] =
+  def isImageURL(url: String): Boolean =
+    imgPattern.matches(url)
+
+  def extractImageURLs(body: String): List[String] =
+    urlPattern
+      .findAllIn(body)
+      .toList
+      .filter(isImageURL)
+
+  def collectAllImageUrls(e: Entry): List[String] =
+    e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
+}
+
+class RedditScraper(
+    xa: HikariTransactor[IO],
+    cfg: Config,
+    market: Market.Market
+) extends Reddit {
+  def runOcrAndSaveResult(
+      xa: HikariTransactor[IO],
+      url: String
+  ): IO[String] =
     for {
       out <- OCR
-        .processURL(url)
+        .processURL(cfg, url)
         .handleErrorWith(e =>
           for {
             _ <- logger.error(s"Error processing $url with OCR: $e")
@@ -55,34 +60,22 @@ object RedditScraper extends Reddit with Cfg with Market {
       }
     } yield s"\n$url:\n$out"
 
-  def processURLs(xa: HikariTransactor[IO], urls: List[String]): IO[String] =
+  def processURLs(urls: List[String]): IO[String] =
     for {
       url <- urls.traverse(processURL(xa, _))
     } yield url.mkString("")
 
-  def isImageURL(url: String): Boolean =
-    imgPattern.matches(url)
-
-  def extractImageURLs(body: String): List[String] =
-    urlPattern
-      .findAllIn(body)
-      .toList
-      .filter(isImageURL)
-
-  def collectAllImageUrls(e: Entry): List[String] =
-    e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
-
-  def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
+  def processEntry(e: Entry): IO[Unit] =
     for {
-      out <- processURLs(xa, collectAllImageUrls(e))
-      _ <- process(xa, e.focus(_.body).modify(v => s"$v$out"))
+      out <- processURLs(ImgExtraction.collectAllImageUrls(e))
+      _ <- process(e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 
-  def handleEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
+  def handleEntry(e: Entry): IO[Unit] =
     Storage
       .contentExists(e.name)
       .transact(xa)
-      .ifM(IO.unit, processEntry(xa, e))
+      .ifM(IO.unit, processEntry(e))
 
   def sentTestFn(body: String, coll: List[String]): Boolean =
     coll.find(s => body.contains(s)).isDefined
@@ -133,11 +126,12 @@ object RedditScraper extends Reddit with Cfg with Market {
     )
 
   def engagementFor(
+      cfg: Config,
       entry: Entry,
       symbols: List[String]
   ): List[model.Engagement] =
     model.Engagement.fromSymbols(
-      symbols.distinct.filter(!Market.isIgnored(_)),
+      symbols.distinct.filter(!Market.isIgnored(cfg, _)),
       entry.name,
       entry.created_time
     )
@@ -145,10 +139,7 @@ object RedditScraper extends Reddit with Cfg with Market {
   def symbolsFromTree(tree: List[model.ContentMeta]): List[String] =
     tree.map(_.symbols).flatten.distinct
 
-  def extractTreeSymbols(
-      xa: HikariTransactor[IO],
-      id: Option[String]
-  ): IO[List[String]] =
+  def extractTreeSymbols(id: Option[String]): IO[List[String]] =
     id match {
       case Some(id) =>
         for {
@@ -157,7 +148,7 @@ object RedditScraper extends Reddit with Cfg with Market {
       case None => IO.pure(List())
     }
 
-  def process(xa: HikariTransactor[IO], entry: Entry): IO[Unit] = {
+  def process(entry: Entry): IO[Unit] = {
     val symbols = getSymbols(entry.body)
     val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
@@ -165,9 +156,9 @@ object RedditScraper extends Reddit with Cfg with Market {
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
     for {
-      treeSymbols <- extractTreeSymbols(xa, entry.parent_id)
+      treeSymbols <- extractTreeSymbols(entry.parent_id)
       engagements <- IO.pure(
-        engagementFor(entry, symbols ++ treeSymbols)
+        engagementFor(cfg, entry, symbols ++ treeSymbols)
       )
       _ <- logger.debug(
         s"${entry.author}: ${entry.body} | ${sentiments
@@ -182,9 +173,14 @@ object RedditScraper extends Reddit with Cfg with Market {
   }
 }
 
-object Scraper extends Cfg {
-  def run(xa: HikariTransactor[IO]): IO[ExitCode] =
-    RedditScraper
-      .loop(xa, cfg.reddit.secret, cfg.reddit.username)
-      .as(ExitCode.Success)
+object Scraper {
+  def run(
+      xa: HikariTransactor[IO],
+      cfg: Config,
+      market: Market.Market
+  ): IO[ExitCode] =
+    for {
+      _ <- new RedditScraper(xa, cfg, market)
+        .loop(cfg.reddit.secret, cfg.reddit.username)
+    } yield ExitCode.Success
 }
