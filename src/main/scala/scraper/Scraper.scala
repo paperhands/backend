@@ -13,13 +13,29 @@ import doobie.hikari.HikariTransactor
 import doobie.implicits._
 import monocle.macros.syntax.all._
 
-class RedditScraper(cfg: Config, market: Market.Market) extends Reddit {
-  import Market.Market
-
+object ImgExtraction {
   val imgPattern = "^.*\\.(png|jpg|jpeg|gif)$".r
   val urlPattern =
     "(?:https?:\\/\\/)(?:\\w+(?:-\\w+)*\\.)+\\w+(?:-\\w+)*\\S*?(?=[\\s)]|$)".r
 
+  def isImageURL(url: String): Boolean =
+    imgPattern.matches(url)
+
+  def extractImageURLs(body: String): List[String] =
+    urlPattern
+      .findAllIn(body)
+      .toList
+      .filter(isImageURL)
+
+  def collectAllImageUrls(e: Entry): List[String] =
+    e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
+}
+
+class RedditScraper(
+    xa: HikariTransactor[IO],
+    cfg: Config,
+    market: Market.Market
+) extends Reddit {
   def runOcrAndSaveResult(
       xa: HikariTransactor[IO],
       url: String
@@ -44,39 +60,27 @@ class RedditScraper(cfg: Config, market: Market.Market) extends Reddit {
       }
     } yield s"\n$url:\n$out"
 
-  def processURLs(xa: HikariTransactor[IO], urls: List[String]): IO[String] =
+  def processURLs(urls: List[String]): IO[String] =
     for {
       url <- urls.traverse(processURL(xa, _))
     } yield url.mkString("")
 
-  def isImageURL(url: String): Boolean =
-    imgPattern.matches(url)
-
-  def extractImageURLs(body: String): List[String] =
-    urlPattern
-      .findAllIn(body)
-      .toList
-      .filter(isImageURL)
-
-  def collectAllImageUrls(e: Entry): List[String] =
-    e.url.filter(isImageURL).toList ++ extractImageURLs(e.body)
-
-  def processEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
+  def processEntry(e: Entry): IO[Unit] =
     for {
-      out <- processURLs(xa, collectAllImageUrls(e))
-      _ <- process(xa, cfg, market, e.focus(_.body).modify(v => s"$v$out"))
+      out <- processURLs(ImgExtraction.collectAllImageUrls(e))
+      _ <- process(e.focus(_.body).modify(v => s"$v$out"))
     } yield ()
 
-  def handleEntry(xa: HikariTransactor[IO], e: Entry): IO[Unit] =
+  def handleEntry(e: Entry): IO[Unit] =
     Storage
       .contentExists(e.name)
       .transact(xa)
-      .ifM(IO.unit, processEntry(xa, e))
+      .ifM(IO.unit, processEntry(e))
 
   def sentTestFn(body: String, coll: List[String]): Boolean =
     coll.find(s => body.contains(s)).isDefined
 
-  def getSentimentValue(cfg: Config, body: String): model.SentimentValue =
+  def getSentimentValue(body: String): model.SentimentValue =
     (
       sentTestFn(body, cfg.sentiment.bull),
       sentTestFn(body, cfg.sentiment.bear)
@@ -87,7 +91,7 @@ class RedditScraper(cfg: Config, market: Market.Market) extends Reddit {
       case (false, false) => model.Unknown()
     }
 
-  def getSymbols(market: Market, body: String): List[String] =
+  def getSymbols(body: String): List[String] =
     market
       .filter(e => {
         val s = e.symbol
@@ -135,10 +139,7 @@ class RedditScraper(cfg: Config, market: Market.Market) extends Reddit {
   def symbolsFromTree(tree: List[model.ContentMeta]): List[String] =
     tree.map(_.symbols).flatten.distinct
 
-  def extractTreeSymbols(
-      xa: HikariTransactor[IO],
-      id: Option[String]
-  ): IO[List[String]] =
+  def extractTreeSymbols(id: Option[String]): IO[List[String]] =
     id match {
       case Some(id) =>
         for {
@@ -147,20 +148,15 @@ class RedditScraper(cfg: Config, market: Market.Market) extends Reddit {
       case None => IO.pure(List())
     }
 
-  def process(
-      xa: HikariTransactor[IO],
-      cfg: Config,
-      market: Market,
-      entry: Entry
-  ): IO[Unit] = {
-    val symbols = getSymbols(market, entry.body)
-    val sentimentVal = getSentimentValue(cfg, entry.body)
+  def process(entry: Entry): IO[Unit] = {
+    val symbols = getSymbols(entry.body)
+    val sentimentVal = getSentimentValue(entry.body)
     val sentiments = sentimentFor(entry, symbols, sentimentVal)
     val content =
       model.Content.fromRedditEntry(entry, symbols, sentimentVal)
 
     for {
-      treeSymbols <- extractTreeSymbols(xa, entry.parent_id)
+      treeSymbols <- extractTreeSymbols(entry.parent_id)
       engagements <- IO.pure(
         engagementFor(cfg, entry, symbols ++ treeSymbols)
       )
@@ -184,7 +180,7 @@ object Scraper {
       market: Market.Market
   ): IO[ExitCode] =
     for {
-      _ <- new RedditScraper(cfg, market)
-        .loop(xa, cfg.reddit.secret, cfg.reddit.username)
+      _ <- new RedditScraper(xa, cfg, market)
+        .loop(cfg.reddit.secret, cfg.reddit.username)
     } yield ExitCode.Success
 }

@@ -5,7 +5,6 @@ import app.paperhands.io.HttpBackend
 import app.paperhands.io.Logger
 import cats.effect._
 import cats.implicits._
-import doobie.hikari.HikariTransactor
 import io.circe.generic.auto._
 import org.http4s.MediaType
 import org.http4s.Method._
@@ -36,7 +35,7 @@ case class LoopState(
 trait Reddit extends HttpBackend {
   val logger = Logger("reddit")
 
-  def handleEntry(xa: HikariTransactor[IO], entry: Entry): IO[Unit]
+  def handleEntry(entry: Entry): IO[Unit]
 
   def loadItems(
       endpoint: Endpoint,
@@ -108,7 +107,6 @@ trait Reddit extends HttpBackend {
     chan.append(items)
 
   def handleItems(
-      xa: HikariTransactor[IO],
       endpoint: Endpoint,
       items: Either[Throwable, List[Entry]],
       chan: Chan[Entry]
@@ -137,7 +135,6 @@ trait Reddit extends HttpBackend {
   }
 
   def producerFor(
-      xa: HikariTransactor[IO],
       endpoint: Endpoint,
       secret: String,
       username: String,
@@ -150,13 +147,12 @@ trait Reddit extends HttpBackend {
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
         items <- loadItems(endpoint, secret, username, before)
-        _ <- handleItems(xa, endpoint, items, chan)
+        _ <- handleItems(endpoint, items, chan)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
       } yield updateState(items, state).take(10)
     }
 
   def consumerFor(
-      xa: HikariTransactor[IO],
       endpoint: Endpoint,
       chan: Chan[Entry]
   ): IO[Unit] =
@@ -171,31 +167,29 @@ trait Reddit extends HttpBackend {
           ),
           IO.unit
         )
-      _ <- handleEntry(xa, v)
+      _ <- handleEntry(v)
     } yield ()
 
   def produceAndConsume(
-      xa: HikariTransactor[IO],
       endpoint: Endpoint,
       secret: String,
       username: String
   ): IO[Unit] =
     for {
       state <- Chan[Entry]()
-      f <- producerFor(xa, endpoint, secret, username, List(), state).start
-      fh <- consumerFor(xa, endpoint, state).foreverM.start
+      f <- producerFor(endpoint, secret, username, List(), state).start
+      fh <- consumerFor(endpoint, state).foreverM.start
       _ <- f.join
       _ <- fh.join
     } yield ()
 
   def loop(
-      xa: HikariTransactor[IO],
       secret: String,
       username: String
   ): IO[Unit] =
     for {
-      fp <- produceAndConsume(xa, Posts, secret, username).start
-      fc <- produceAndConsume(xa, Comments, secret, username).start
+      fp <- produceAndConsume(Posts, secret, username).start
+      fc <- produceAndConsume(Comments, secret, username).start
       _ <- fc.join
       _ <- fp.join
     } yield ()

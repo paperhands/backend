@@ -1,10 +1,8 @@
-import minitest._
 import app.paperhands.ocr.OCR
-import scala.io.Source
+import app.paperhands.config.Config
 import scala.concurrent.duration._
 import cats.implicits._
-import cats.effect.IO
-import cats.effect.testing.minitest.{IOTestSuite, DeterministicIOTestSuite}
+import cats.effect.testing.minitest.IOTestSuite
 
 object OCRTestSuite extends IOTestSuite {
   override val timeout = 10.second
@@ -14,7 +12,8 @@ object OCRTestSuite extends IOTestSuite {
       getClass.getClassLoader.getResource("fixtures/ocr/gme.png").getPath
 
     for {
-      output <- OCR.processFile(path)
+      cfg <- Config.cfg
+      output <- OCR.processFile(cfg, path)
     } yield assert(output.contains("GME"))
   }
 
@@ -23,7 +22,8 @@ object OCRTestSuite extends IOTestSuite {
       "https://d1wvxg652jdms0.cloudfront.net/diy-dependabot-clojure/pr-preview.png"
 
     for {
-      output <- OCR.processURL(url)
+      cfg <- Config.cfg
+      output <- OCR.processURL(cfg, url)
     } yield assert(output.contains("[Automated]"))
   }
 }
