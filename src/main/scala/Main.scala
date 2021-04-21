@@ -1,10 +1,10 @@
 package app.paperhands
 
 import app.paperhands.config.Config
-import app.paperhands.market.Market
 import app.paperhands.export.Export
 import app.paperhands.flyway.MyFlyway
 import app.paperhands.io.Logger
+import app.paperhands.market.Market
 import app.paperhands.scraper.Scraper
 import app.paperhands.server.Server
 import app.paperhands.storage.ConnectionPool
@@ -12,7 +12,6 @@ import cats.effect._
 import cats.implicits._
 
 object Main extends IOApp with ConnectionPool {
-  import Market.Market
 
   val logger = Logger("main")
 

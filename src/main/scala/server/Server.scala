@@ -1,8 +1,8 @@
 package app.paperhands.server
 
 import app.paperhands.config.Config
-import app.paperhands.market.Market
 import app.paperhands.handlers.paperhands
+import app.paperhands.market.Market
 import cats.effect._
 import doobie.hikari.HikariTransactor
 import org.http4s.implicits._
