@@ -260,14 +260,15 @@ class Handler(xa: HikariTransactor[IO], cfg: Config, market: Market.Market)
     val bucket = periodToBucket(period)
 
     for {
-      market <- Market.market
-      yahooResponse <- Yahoo.scrape(symbol)
+      yf <- Yahoo.scrape(symbol).start
       dbData <- fetchDBDataForDetails(
         symbol,
         bucket,
         start,
         end
       ).transact(xa)
+      yOutcome <- yf.join
+      yahooResponse <- yOutcome.embedNever
     } yield QuoteDetails
       .fromQueryResults(
         market,
