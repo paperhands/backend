@@ -56,9 +56,8 @@ object Market {
 
   def readFile(cfg: Config)(f: String): IO[Market] =
     logger.info(s"reading market data from $f") >>
-      IO(Source.fromResource(s"data/$f").mkString) >>= { data =>
-      IO.pure(parseCsv(cfg)(data))
-    }
+      IO(Source.fromResource(s"data/$f").mkString)
+        .map(parseCsv(cfg))
 
   def load(cfg: Config): IO[Market] =
     files.traverse(readFile(cfg)).map(_.flatten)
