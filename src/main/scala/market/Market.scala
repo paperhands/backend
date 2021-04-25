@@ -40,7 +40,7 @@ object Market {
     Stream
       .emit(csv)
       .through(lowlevel.rows[Fallible, String]('|'))
-      .map(l => List(l.get(0), l.get(1)).sequence)
+      .map(l => List(l.at(0), l.at(1)).sequence)
       .collect {
         case Some(List(s, d)) if s != "Symbol" =>
           Ticket(
