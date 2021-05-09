@@ -66,7 +66,7 @@ lazy val root = project
 
        "org.flywaydb"  % "flyway-core" % "7.8.2",
 
-       "net.ruippeixotog" %% "scala-scraper" % "2.2.0",
+       "net.ruippeixotog" %% "scala-scraper" % "2.2.1",
 
        "co.fs2" %% "fs2-core" % f2sVersion,
        "co.fs2" %% "fs2-io"   % f2sVersion,
