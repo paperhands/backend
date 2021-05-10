@@ -44,7 +44,8 @@ case class Content(
     author: String,
     body: String,
     created_time: Instant,
-    parsed: ContentMeta
+    parsed: ContentMeta,
+    subreddit: String
 )
 
 @JsonCodec case class ContentMeta(symbols: List[String], sentiment: Int)
@@ -64,7 +65,8 @@ object Content {
       entry.author,
       entry.body,
       entry.created_time,
-      ContentMeta(symbols, sentiment.getSentiment)
+      ContentMeta(symbols, sentiment.getSentiment),
+      entry.subreddit
     )
   }
 }

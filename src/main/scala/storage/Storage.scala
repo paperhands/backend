@@ -49,8 +49,8 @@ object Storage extends model.DoobieMetas {
   def saveContent(entry: model.Content): ConnectionIO[Int] = {
     val sql = """
       INSERT INTO
-      content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, created_time)
-      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, now() at time zone 'utc')
+      content(id, type, origin, parent_id, permalink, author, body, origin_time, parsed, subreddit, created_time)
+      VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now() at time zone 'utc')
     """
     Update[model.Content](sql).run(entry)
   }
@@ -252,7 +252,7 @@ object Storage extends model.DoobieMetas {
   def getContentForExport: Stream[ConnectionIO, model.Content] =
     sql"""
       SELECT
-        id, type, origin, parent_id, permalink, author, body, origin_time, parsed
+        id, type, origin, parent_id, permalink, author, body, origin_time, parsed, subreddit
       FROM content
       WHERE body IS NOT NULL
     """
@@ -265,7 +265,7 @@ object Storage extends model.DoobieMetas {
   ): ConnectionIO[List[model.Content]] =
     sql"""
       SELECT
-        id, type, origin, parent_id, permalink, author, body, origin_time, parsed
+        id, type, origin, parent_id, permalink, author, body, origin_time, parsed, subreddit
       FROM content
       WHERE id IN (SELECT origin_id FROM sentiments WHERE symbol = $symbol)
       OFFSET floor(random() * (SELECT COUNT(*) FROM content))
@@ -279,7 +279,7 @@ object Storage extends model.DoobieMetas {
   ): ConnectionIO[List[model.Content]] =
     sql"""
       SELECT
-        id, type, origin, parent_id, permalink, author, body, origin_time, parsed
+        id, type, origin, parent_id, permalink, author, body, origin_time, parsed, subreddit
       FROM content
       WHERE id NOT IN (SELECT content_id FROM labels)
       OFFSET floor(random() * (SELECT COUNT(*) FROM content))

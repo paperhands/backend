@@ -27,6 +27,7 @@ object Endpoint extends Enumeration {
 import Endpoint._
 
 case class LoopState(
+    subreddit: String,
     beforePost: String,
     beforeComment: String,
     index: Int
@@ -38,6 +39,7 @@ trait Reddit extends HttpBackend {
   def handleEntry(entry: Entry): IO[Unit]
 
   def loadItems(
+      subreddit: String,
       endpoint: Endpoint,
       secret: String,
       username: String,
@@ -46,7 +48,7 @@ trait Reddit extends HttpBackend {
     val limit = 100
     val ts = System.currentTimeMillis
     val ua = ProductId(s"linux:$secret:0.0.1-$ts (by u/$username)")
-    val base = uri"https://www.reddit.com" / "r" / "wallstreetbets"
+    val base = uri"https://www.reddit.com" / "r" / subreddit
     val uri =
       endpoint match {
         case Posts    => base / "new.json"
@@ -135,6 +137,7 @@ trait Reddit extends HttpBackend {
   }
 
   def producerFor(
+      subreddit: String,
       endpoint: Endpoint,
       secret: String,
       username: String,
@@ -146,7 +149,7 @@ trait Reddit extends HttpBackend {
 
       for {
         _ <- logger.info(s"querying $endpoint for new items before $before")
-        items <- loadItems(endpoint, secret, username, before)
+        items <- loadItems(subreddit, endpoint, secret, username, before)
         _ <- handleItems(endpoint, items, chan)
         _ <- calculateSleep(endpoint, items.toList.flatten.length)
       } yield updateState(items, state).take(10)
@@ -171,28 +174,49 @@ trait Reddit extends HttpBackend {
     } yield ()
 
   def produceAndConsume(
+      subreddit: String,
       endpoint: Endpoint,
       secret: String,
       username: String
   ): IO[Unit] =
     for {
       state <- Chan[Entry]()
-      f <- producerFor(endpoint, secret, username, List(), state).start
+      f <- producerFor(
+        subreddit,
+        endpoint,
+        secret,
+        username,
+        List(),
+        state
+      ).start
       fh <- consumerFor(endpoint, state).foreverM.start
       _ <- f.join
       _ <- fh.join
     } yield ()
 
-  def loop(
+  def loopForSubreddit(
+      subreddit: String,
       secret: String,
       username: String
   ): IO[Unit] =
     for {
-      fp <- produceAndConsume(Posts, secret, username).start
-      fc <- produceAndConsume(Comments, secret, username).start
+      fp <- produceAndConsume(subreddit, Posts, secret, username).start
+      fc <- produceAndConsume(subreddit, Comments, secret, username).start
       _ <- fc.join
       _ <- fp.join
     } yield ()
+
+  def loop(
+      secret: String,
+      username: String
+  ): IO[Unit] = {
+    val subreddits = List("wallstreetbets", "Superstonk")
+
+    for {
+      fs <- subreddits.traverse(loopForSubreddit(_, secret, username).start)
+      _ <- fs.traverse(_.join)
+    } yield ()
+  }
 }
 
 sealed trait RedditJsonCodec
@@ -215,6 +239,7 @@ case class RedditEntryData(
     body: Option[String],
     url: Option[String],
     author: String,
+    subreddit: String,
     created_utc: Option[Long]
 ) extends RedditJsonCodec
 
@@ -227,7 +252,8 @@ case class Entry(
     body: String,
     parent_id: Option[String],
     created_time: Instant,
-    url: Option[String]
+    url: Option[String],
+    subreddit: String
 )
 
 object Entry {
@@ -256,7 +282,8 @@ object Entry {
         bodyFromRedditEntry(entry),
         entry.data.parent_id,
         getTime(entry.data),
-        entry.data.url
+        entry.data.url,
+        entry.data.subreddit
       )
     )
 }
