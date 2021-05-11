@@ -109,19 +109,26 @@ trait Reddit extends HttpBackend {
     chan.append(items)
 
   def handleItems(
+      subreddit: String,
       endpoint: Endpoint,
       items: Either[Throwable, List[Entry]],
       chan: Chan[Entry]
   ): IO[Unit] = {
     items match {
       case Right(items) =>
-        logger.info(s"Adding ${items.length} entries to the $endpoint chan") >>
+        logger.info(
+          s"Adding ${items.length} entries to the $subreddit $endpoint chan"
+        ) >>
           addItemsToQueue(items.toVector, chan)
       case Left(_) => IO()
     }
   }
 
-  def calculateSleep(endpoint: Endpoint, length: Int): IO[Unit] = {
+  def calculateSleep(
+      subreddit: String,
+      endpoint: Endpoint,
+      length: Int
+  ): IO[Unit] = {
     val duration = endpoint match {
       // length 0 for comments probably indicates that latest comment was deleted
       // so solution would be to start from scratch as quickly as possible
@@ -132,7 +139,7 @@ trait Reddit extends HttpBackend {
       case Posts                                  => 120.seconds
     }
 
-    logger.info(s"Sleeping for $duration for $endpoint") >>
+    logger.info(s"Sleeping for $duration for $subreddit $endpoint") >>
       IO.sleep(duration)
   }
 
@@ -148,10 +155,12 @@ trait Reddit extends HttpBackend {
       val before = state.headOption
 
       for {
-        _ <- logger.info(s"querying $endpoint for new items before $before")
+        _ <- logger.info(
+          s"querying $subreddit $endpoint for new items before $before"
+        )
         items <- loadItems(subreddit, endpoint, secret, username, before)
-        _ <- handleItems(endpoint, items, chan)
-        _ <- calculateSleep(endpoint, items.toList.flatten.length)
+        _ <- handleItems(subreddit, endpoint, items, chan)
+        _ <- calculateSleep(subreddit, endpoint, items.toList.flatten.length)
       } yield updateState(items, state).take(10)
     }
 
@@ -213,7 +222,9 @@ trait Reddit extends HttpBackend {
     val subreddits = List("wallstreetbets", "Superstonk")
 
     for {
-      fs <- subreddits.traverse(loopForSubreddit(_, secret, username).start)
+      fs <- subreddits.traverse(
+        IO.sleep(3.seconds) >> loopForSubreddit(_, secret, username).start
+      )
       _ <- fs.traverse(_.join)
     } yield ()
   }
