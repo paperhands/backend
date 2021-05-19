@@ -268,7 +268,7 @@ object Storage extends model.DoobieMetas {
         id, type, origin, parent_id, permalink, author, body, origin_time, parsed, subreddit
       FROM content
       WHERE id IN (SELECT origin_id FROM sentiments WHERE symbol = $symbol)
-      OFFSET floor(random() * (SELECT COUNT(*) FROM content))
+      ORDER BY RANDOM()
       LIMIT $limit
     """
       .query[model.Content]
@@ -282,7 +282,7 @@ object Storage extends model.DoobieMetas {
         id, type, origin, parent_id, permalink, author, body, origin_time, parsed, subreddit
       FROM content
       WHERE id NOT IN (SELECT content_id FROM labels)
-      OFFSET floor(random() * (SELECT COUNT(*) FROM content))
+      ORDER BY RANDOM()
       LIMIT $limit
     """
       .query[model.Content]
