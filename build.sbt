@@ -50,7 +50,7 @@ lazy val root = project
       "org.http4s" %% "http4s-blaze-client" % http4sVersion,
       "org.http4s" %% "http4s-blaze-server" % http4sVersion,
 
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.3",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
       "ch.qos.logback" % "logback-classic"            % "1.2.3",
 
       "org.tpolecat" %% "doobie-core"     % doobieVersion,
