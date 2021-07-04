@@ -1,2 +1,3 @@
 Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|ETF|NextShares
 ZQK|Quicksilver||||||
+HOOD|Robinhood||||||
