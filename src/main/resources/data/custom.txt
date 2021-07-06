@@ -1,3 +1,4 @@
 Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|ETF|NextShares
 ZQK|Quicksilver||||||
 HOOD|Robinhood||||||
+GME|GameStop Corporation Common Stock|N|GME|N|100|N|GME

@@ -9,7 +9,7 @@ object SearchQuoteTestSuite extends IOTestSuite {
       market <- Market.market
       gmes <- IO.pure(SearchQuote.findBySymbol(market, "GME"))
     } yield (
-      assertEquals(gmes.length, 2),
+      assertEquals(gmes.length, 1),
       assertEquals(gmes.head.symbol, "GME")
     )
   }

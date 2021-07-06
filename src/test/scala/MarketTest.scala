@@ -9,7 +9,7 @@ object MarketTestSuite extends IOTestSuite {
   test("load") {
     for {
       m <- Market.market
-    } yield assert(m.length >= 9949)
+    } yield assert(m.length >= 4000)
   }
 
   test("load and vals are present") {
