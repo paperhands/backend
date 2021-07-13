@@ -2,3 +2,7 @@ Symbol|Security Name|Market Category|Test Issue|Financial Status|Round Lot Size|
 ZQK|Quicksilver||||||
 HOOD|Robinhood||||||
 GME|GameStop Corporation Common Stock|N|GME|N|100|N|GME
+AMC|AMC Entertainment Holdings|N|GME|N|100|N|GME
+WISH|ContextLogic|N|GME|N|100|N|GME
+UBER|Uber Technologies|N|GME|N|100|N|GME
+BB|Blackberry|N|GME|N|100|N|GME
