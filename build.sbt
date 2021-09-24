@@ -6,7 +6,7 @@ val catsEffVersion = "3.1.1"
 val f2sVersion = "3.0.1"
 val f2sDataVersion = "1.0.0-RC2"
 val doobieVersion = "1.0.0-M4"
-val monocleVersion = "3.0.0-M6"
+val monocleVersion = "3.0.0"
 val minitestVersion = "2.9.6"
 
 inThisBuild(
