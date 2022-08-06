@@ -42,7 +42,7 @@ lazy val root = project
       "io.circe"  %% "circe-parser"   % circeVersion,
       "io.circe"  %% "circe-literal"  % circeVersion,
       "io.circe"  %% "circe-jawn"     % circeVersion,
-      "io.circe"  %% "circe-yaml"     % "0.13.1",
+      "io.circe"  %% "circe-yaml"     % "0.14.1",
 
       "org.http4s" %% "http4s-core"         % http4sVersion,
       "org.http4s" %% "http4s-dsl"          % http4sVersion,
@@ -50,8 +50,8 @@ lazy val root = project
       "org.http4s" %% "http4s-blaze-client" % http4sVersion,
       "org.http4s" %% "http4s-blaze-server" % http4sVersion,
 
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4",
-      "ch.qos.logback" % "logback-classic"            % "1.2.3",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5",
+      "ch.qos.logback" % "logback-classic"            % "1.2.11",
 
       "org.tpolecat" %% "doobie-core"     % doobieVersion,
       "org.tpolecat" %% "doobie-hikari"   % doobieVersion,
@@ -64,9 +64,9 @@ lazy val root = project
        "io.monix" %% "minitest-laws" % minitestVersion % "test",
        "org.typelevel" %% "cats-effect-testing-minitest" % "1.4.0" % "test",
 
-       "org.flywaydb"  % "flyway-core" % "7.9.1",
+       "org.flywaydb"  % "flyway-core" % "9.1.2",
 
-       "net.ruippeixotog" %% "scala-scraper" % "2.2.1",
+       "net.ruippeixotog" %% "scala-scraper" % "3.0.0",
 
        "co.fs2" %% "fs2-core" % f2sVersion,
        "co.fs2" %% "fs2-io"   % f2sVersion,
@@ -76,7 +76,7 @@ lazy val root = project
        "org.typelevel" %% "cats-core"   % catsVersion,
        "org.typelevel" %% "cats-effect" % catsEffVersion,
 
-       "me.xdrop" % "fuzzywuzzy" % "1.3.1",
+       "me.xdrop" % "fuzzywuzzy" % "1.4.0",
     ),
   )
 
