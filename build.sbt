@@ -1,11 +1,11 @@
 val _scalaVersion = "2.13.5"
 val circeVersion = "0.15.0-M1"
 val http4sVersion = "1.0.0-M21"
-val catsVersion = "2.6.1"
-val catsEffVersion = "3.1.1"
+val catsVersion = "2.8.0"
+val catsEffVersion = "3.3.14"
 val f2sVersion = "3.2.11"
 val f2sDataVersion = "1.4.1"
-val doobieVersion = "1.0.0-M4"
+val doobieVersion = "1.0.0-RC2"
 val monocleVersion = "3.0.0-M6"
 val minitestVersion = "2.9.6"
 
@@ -62,7 +62,7 @@ lazy val root = project
 
        "io.monix" %% "minitest"      % minitestVersion % "test",
        "io.monix" %% "minitest-laws" % minitestVersion % "test",
-       "org.typelevel" %% "cats-effect-testing-minitest" % "1.1.1" % "test",
+       "org.typelevel" %% "cats-effect-testing-minitest" % "1.4.0" % "test",
 
        "org.flywaydb"  % "flyway-core" % "7.9.1",
 
