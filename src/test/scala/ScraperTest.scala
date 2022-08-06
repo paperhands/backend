@@ -64,14 +64,14 @@ object ScraperTestSuite extends IOTestSuite {
   test("exception symbol extraction") {
     Helper.test { s =>
       assertEquals(List(), s.getSymbols("no symbols in here"))
-      assertEquals(s.getSymbols("i bought GME today"), List("GME"))
-      assertEquals(s.getSymbols("did we, GME?"), List("GME"))
-      assertEquals(s.getSymbols("some $GME today"), List("GME"))
-      assertEquals(s.getSymbols("some $gme today"), List("GME"))
-      assertEquals(s.getSymbols("i  gme today"), List("GME"))
-      assertEquals(s.getSymbols("GME"), List("GME"))
-      assertEquals(s.getSymbols("GME to the moon"), List("GME"))
-      assertEquals(s.getSymbols("lets go GME"), List("GME"))
+      assertEquals(s.getSymbols("i bought GME today").head, "GME")
+      assertEquals(s.getSymbols("did we, GME?").head, "GME")
+      assertEquals(s.getSymbols("some $GME today").head, "GME")
+      assertEquals(s.getSymbols("some $gme today").head, "GME")
+      assertEquals(s.getSymbols("i  gme today").head, "GME")
+      assertEquals(s.getSymbols("GME").head, "GME")
+      assertEquals(s.getSymbols("GME to the moon").head, "GME")
+      assertEquals(s.getSymbols("lets go GME").head, "GME")
     }
   }
 
