@@ -9,8 +9,8 @@ object SearchQuoteTestSuite extends IOTestSuite {
       market <- Market.market
       gmes <- IO.pure(SearchQuote.findBySymbol(market, "GME"))
     } yield (
-      assertEquals(gmes.length, 1),
-      assertEquals(gmes.head.symbol, "GME")
+      assertEquals(gmes.head.symbol, "GME"),
+      assertEquals(gmes.length, 1)
     )
   }
 
@@ -19,8 +19,8 @@ object SearchQuoteTestSuite extends IOTestSuite {
       market <- Market.market
       gmes <- IO.pure(SearchQuote.findByDesc(market, "Gamestop"))
     } yield (
-      assertEquals(gmes.length, 3),
-      assertEquals(gmes.head.symbol, "GME")
+      assertEquals(gmes.head.symbol, "GME"),
+      assertEquals(gmes.length, 3)
     )
   }
 
@@ -29,8 +29,8 @@ object SearchQuoteTestSuite extends IOTestSuite {
       market <- Market.market
       gmes <- IO.pure(SearchQuote.findByDesc(market, "Gumestonp"))
     } yield (
-      assertEquals(gmes.length, 1),
-      assertEquals(gmes.head.symbol, "GME")
+      assertEquals(gmes.head.symbol, "GME"),
+      assertEquals(gmes.length, 1)
     )
   }
 }
